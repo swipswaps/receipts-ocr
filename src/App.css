@@ -497,3 +497,135 @@ body {
   color: #6b7280;
   width: 40px;
 }
+
+/* Docker Status Component */
+.docker-status {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.docker-status.checking {
+  background-color: #1e3a8a;
+  border: 1px solid #3b82f6;
+  color: #93c5fd;
+}
+
+.docker-status.healthy {
+  background-color: #064e3b;
+  border: 1px solid #10b981;
+  color: #6ee7b7;
+}
+
+.docker-status.unhealthy {
+  background-color: #7f1d1d;
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.docker-status .status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.docker-status .status-text {
+  flex: 1;
+  font-weight: 600;
+}
+
+.docker-status .expand-icon {
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+.docker-status .badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.docker-status .status-details {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+}
+
+.docker-status .error-message {
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.docker-status .fallback-info {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.docker-status .setup-instructions {
+  margin-bottom: 12px;
+}
+
+.docker-status .setup-instructions h4 {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.docker-status .setup-instructions ol {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.docker-status .setup-instructions li {
+  margin-bottom: 4px;
+}
+
+.docker-status .setup-instructions code {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.docker-status .retry-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-right: 12px;
+}
+
+.docker-status .retry-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.docker-status .retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.docker-status .github-link {
+  display: inline-block;
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.docker-status .github-link:hover {
+  text-decoration: underline;
+}
