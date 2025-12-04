@@ -250,7 +250,15 @@ function App() {
       <nav className="tabs">
         <button
           className={activeTab === 'upload' ? 'active' : ''}
-          onClick={() => setActiveTab('upload')}
+          onClick={() => {
+            // If already on upload tab, trigger file selection
+            // Otherwise just switch to upload tab
+            if (activeTab === 'upload') {
+              fileInputRef.current?.click();
+            } else {
+              setActiveTab('upload');
+            }
+          }}
         >
           <Upload size={16} /> Upload
         </button>
