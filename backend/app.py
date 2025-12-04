@@ -28,6 +28,276 @@ if TYPE_CHECKING:
     from psycopg2.extensions import connection
 
 # -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# OpenCV Image Preprocessing for OCR Enhancement
+# -----------------------------------------------------------------------------
+
+
+def preprocess_for_ocr(img: np.ndarray) -> np.ndarray:
+    """
+    Apply OpenCV preprocessing to improve OCR accuracy.
+
+    Steps:
+    1. Convert to grayscale
+    2. Apply adaptive thresholding for better contrast
+    3. Denoise while preserving edges
+    4. Deskew if needed
+
+    Args:
+        img: BGR image from cv2.imdecode
+
+    Returns:
+        Preprocessed BGR image ready for OCR
+    """
+    # Convert to grayscale for processing
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # Denoise while preserving edges
+    denoised = cv2.fastNlMeansDenoising(gray, h=10, templateWindowSize=7, searchWindowSize=21)
+
+    # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(denoised)
+
+    # Detect and correct skew
+    enhanced = deskew_image(enhanced)
+
+    # Convert back to BGR for PaddleOCR (it expects color images)
+    return cv2.cvtColor(enhanced, cv2.COLOR_GRAY2BGR)
+
+
+def deskew_image(gray: np.ndarray, max_angle: float = 10.0) -> np.ndarray:
+    """
+    Detect and correct image skew using Hough transform.
+
+    Args:
+        gray: Grayscale image
+        max_angle: Maximum skew angle to correct (degrees)
+
+    Returns:
+        Deskewed grayscale image
+    """
+    # Edge detection
+    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+
+    # Detect lines using Hough transform
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=100, minLineLength=100, maxLineGap=10)
+
+    if lines is None or len(lines) < 3:
+        return gray  # Not enough lines to determine skew
+
+    # Calculate angles of detected lines
+    angles = []
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        if x2 - x1 != 0:  # Avoid division by zero
+            angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
+            # Only consider near-horizontal lines
+            if abs(angle) < max_angle:
+                angles.append(angle)
+
+    if not angles:
+        return gray
+
+    # Use median angle to avoid outliers
+    median_angle = float(np.median(angles))
+
+    if abs(median_angle) < 0.5:  # Skip if nearly straight
+        return gray
+
+    # Rotate to correct skew
+    h, w = gray.shape
+    center = (w // 2, h // 2)
+    rotation_matrix = cv2.getRotationMatrix2D(center, median_angle, 1.0)
+    rotated = cv2.warpAffine(
+        gray, rotation_matrix, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+    )
+
+    logger.debug(f"Deskewed image by {median_angle:.2f} degrees")
+    return rotated
+
+
+# -----------------------------------------------------------------------------
+# Layout Analysis - Column and Row Detection
+# -----------------------------------------------------------------------------
+
+
+def analyze_layout(blocks: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Analyze OCR blocks to detect columns, rows, and spacing.
+
+    Args:
+        blocks: List of OCR blocks with _x, _y, _w, _h coordinates
+
+    Returns:
+        Layout analysis with columns, rows, and grouped text
+    """
+    if not blocks:
+        return {"columns": [], "rows": [], "grouped_text": []}
+
+    # Sort blocks by Y coordinate (top to bottom)
+    sorted_blocks = sorted(blocks, key=lambda b: b["_y"])
+
+    # Detect rows by grouping blocks with similar Y coordinates
+    rows = detect_rows(sorted_blocks)
+
+    # Detect columns by analyzing X coordinates within rows
+    columns = detect_columns(sorted_blocks)
+
+    # Group text by detected structure
+    grouped_text = group_by_layout(rows, columns)
+
+    return {
+        "columns": columns,
+        "rows": rows,
+        "grouped_text": grouped_text,
+        "column_count": len(columns),
+        "row_count": len(rows),
+    }
+
+
+def detect_rows(
+    blocks: list[dict[str, Any]], y_tolerance: float = 0.5
+) -> list[list[dict[str, Any]]]:
+    """
+    Group blocks into rows based on Y-coordinate proximity.
+
+    Args:
+        blocks: Sorted list of OCR blocks
+        y_tolerance: Tolerance for Y-coordinate grouping (fraction of avg height)
+
+    Returns:
+        List of rows, each containing blocks on that row
+    """
+    if not blocks:
+        return []
+
+    # Calculate average block height for tolerance
+    avg_height = sum(b["_h"] for b in blocks) / len(blocks)
+    tolerance = avg_height * y_tolerance
+
+    rows: list[list[dict[str, Any]]] = []
+    current_row: list[dict[str, Any]] = [blocks[0]]
+    current_y = blocks[0]["_y"]
+
+    for block in blocks[1:]:
+        # Check if block is on same row (within tolerance)
+        if abs(block["_y"] - current_y) <= tolerance:
+            current_row.append(block)
+        else:
+            # Start new row
+            rows.append(sorted(current_row, key=lambda b: b["_x"]))  # Sort row by X
+            current_row = [block]
+            current_y = block["_y"]
+
+    # Don't forget last row
+    if current_row:
+        rows.append(sorted(current_row, key=lambda b: b["_x"]))
+
+    return rows
+
+
+def detect_columns(
+    blocks: list[dict[str, Any]], x_gap_threshold: float = 50.0
+) -> list[dict[str, Any]]:
+    """
+    Detect column boundaries based on X-coordinate clustering.
+
+    Args:
+        blocks: List of OCR blocks
+        x_gap_threshold: Minimum gap between columns in pixels
+
+    Returns:
+        List of column definitions with boundaries
+    """
+    if not blocks:
+        return []
+
+    # Get all X positions
+    x_positions = [(b["_x"], b["_x"] + b["_w"]) for b in blocks]
+    x_positions.sort(key=lambda p: p[0])
+
+    # Find gaps that indicate column boundaries
+    columns: list[dict[str, Any]] = []
+    current_start = x_positions[0][0]
+    current_end = x_positions[0][1]
+
+    for start, end in x_positions[1:]:
+        if start - current_end > x_gap_threshold:
+            # Found a gap - save current column
+            columns.append(
+                {
+                    "x_start": current_start,
+                    "x_end": current_end,
+                    "width": current_end - current_start,
+                }
+            )
+            current_start = start
+            current_end = end
+        else:
+            # Extend current column
+            current_end = max(current_end, end)
+
+    # Don't forget last column
+    columns.append(
+        {
+            "x_start": current_start,
+            "x_end": current_end,
+            "width": current_end - current_start,
+        }
+    )
+
+    return columns
+
+
+def group_by_layout(
+    rows: list[list[dict[str, Any]]], columns: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """
+    Group text by layout structure for better output formatting.
+
+    Args:
+        rows: Detected rows from detect_rows()
+        columns: Detected columns from detect_columns()
+
+    Returns:
+        List of grouped text entries with row/column info
+    """
+    grouped: list[dict[str, Any]] = []
+
+    for row_idx, row in enumerate(rows):
+        row_text_parts: list[str] = []
+
+        for block in row:
+            # Determine which column this block belongs to
+            block_center = block["_x"] + block["_w"] / 2
+            for i, col in enumerate(columns):
+                if col["x_start"] <= block_center <= col["x_end"]:
+                    _ = i  # Column index (unused but kept for potential future use)
+                    break
+
+            row_text_parts.append(block["text"])
+
+        # Join row text with proper spacing
+        if len(columns) > 1 and len(row_text_parts) > 1:
+            # Multi-column: tab-separate
+            row_text = "\t".join(row_text_parts)
+        else:
+            # Single column: space-separate
+            row_text = " ".join(row_text_parts)
+
+        grouped.append(
+            {
+                "row": row_idx,
+                "text": row_text,
+                "block_count": len(row),
+            }
+        )
+
+    return grouped
+
+
 # Configuration
 # -----------------------------------------------------------------------------
 MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB max file size
@@ -329,8 +599,12 @@ def ocr_endpoint() -> tuple[Response, int] | Response:
 
         logger.info(f"Processing receipt: {file.filename} ({len(file_bytes)} bytes)")
 
-        # Run OCR
-        result = ocr.ocr(img, cls=False)
+        # Preprocess image with OpenCV for better OCR accuracy
+        preprocessed = preprocess_for_ocr(img)
+        logger.info("Applied OpenCV preprocessing (denoise, CLAHE, deskew)")
+
+        # Run OCR on preprocessed image
+        result = ocr.ocr(preprocessed, cls=False)
 
         if not result or not result[0]:
             return jsonify({"error": "No text detected"}), 200
@@ -356,6 +630,16 @@ def ocr_endpoint() -> tuple[Response, int] | Response:
             )
             raw_lines.append(text)
 
+        # Analyze layout - detect columns, rows, spacing
+        layout = analyze_layout(blocks)
+        logger.info(f"Layout: {layout['column_count']} columns, {layout['row_count']} rows")
+
+        # Use layout-aware text reconstruction if multi-column
+        if layout["column_count"] > 1:
+            raw_text = "\n".join(g["text"] for g in layout["grouped_text"])
+        else:
+            raw_text = "\n".join(raw_lines)
+
         # Parse receipt structure
         parsed = parse_receipt_text(blocks)
 
@@ -364,8 +648,12 @@ def ocr_endpoint() -> tuple[Response, int] | Response:
                 "success": True,
                 "filename": file.filename,
                 "blocks": blocks,
-                "raw_text": "\n".join(raw_lines),
+                "raw_text": raw_text,
                 "parsed": parsed,
+                "layout": {
+                    "column_count": layout["column_count"],
+                    "row_count": layout["row_count"],
+                },
             }
         )
 
