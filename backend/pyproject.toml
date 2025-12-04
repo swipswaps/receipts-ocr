@@ -1,0 +1,79 @@
+# Python project configuration for receipts-ocr
+
+[project]
+name = "receipts-ocr"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+# =============================================================================
+# Ruff - Fast Python Linter (replaces flake8, isort, pyupgrade, black)
+# =============================================================================
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+fix = true
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort (import sorting)
+    "UP",     # pyupgrade (modernize Python syntax)
+    "B",      # flake8-bugbear (common bugs)
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "RUF",    # Ruff-specific rules
+]
+
+ignore = [
+    "ANN401",  # Dynamically typed expressions (Any)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+# =============================================================================
+# Mypy - Static Type Checker
+# =============================================================================
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_return_any = false
+warn_unused_ignores = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+show_error_codes = true
+show_column_numbers = true
+
+# Ignore missing imports for packages without stubs
+[[tool.mypy.overrides]]
+module = [
+    "paddleocr.*",
+    "cv2.*",
+    "psycopg2.*",
+    "flask_cors.*",
+    "numpy.*",
+    "PIL.*",
+]
+ignore_missing_imports = true
+
+# =============================================================================
+# Pytest - Testing
+# =============================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", "venv/*", ".venv/*"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

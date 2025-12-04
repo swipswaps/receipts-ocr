@@ -1,0 +1,58 @@
+# Pre-commit hooks configuration for receipts-ocr
+# Based on quality-gates patterns from https://github.com/swipswaps/quality-gates
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: tsconfig.*\.json$
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: detect-private-key
+
+  # Python: Ruff (fast linter + formatter)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.1
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  # Python: Mypy (type checking)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        files: ^backend/
+        args: [--config-file=backend/pyproject.toml]
+        additional_dependencies:
+          - types-Flask
+          - types-psycopg2
+          - types-requests
+
+  # TypeScript/JavaScript: ESLint
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: npx eslint --fix
+        language: system
+        files: \.(ts|tsx|js|jsx)$
+        exclude: node_modules/
+
+  # TypeScript: Type checking
+  - repo: local
+    hooks:
+      - id: tsc
+        name: typescript
+        entry: npx tsc --noEmit
+        language: system
+        files: \.(ts|tsx)$
+        pass_filenames: false

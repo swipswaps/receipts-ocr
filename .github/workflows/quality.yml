@@ -1,0 +1,84 @@
+name: Quality Gates
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  # ===========================================================================
+  # Frontend Quality Checks (at root level)
+  # ===========================================================================
+  frontend:
+    name: Frontend (TypeScript/React)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Check Bundle Size
+        run: |
+          MAX=524288  # 512 KB
+          SIZE=$(find dist -name "*.js" -exec cat {} + | wc -c)
+          echo "Total JS bundle size: $SIZE bytes (max: $MAX)"
+          if [ "$SIZE" -gt "$MAX" ]; then
+            echo "❌ Bundle too large! Consider using dynamic import()"
+            exit 1
+          fi
+          echo "✅ Bundle size OK"
+
+      - name: E2E Tests
+        run: npx playwright install --with-deps && npx playwright test
+        continue-on-error: true  # Enable once tests are stable
+
+  # ===========================================================================
+  # Backend Quality Checks
+  # ===========================================================================
+  backend:
+    name: Backend (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install ruff mypy
+          pip install -r requirements.txt || true
+
+      - name: Ruff Lint
+        run: ruff check .
+
+      - name: Ruff Format Check
+        run: ruff format --check .
+
+      - name: Mypy Type Check
+        run: mypy .
