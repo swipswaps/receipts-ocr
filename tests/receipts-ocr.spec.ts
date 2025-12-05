@@ -15,7 +15,7 @@ test.describe('Receipts OCR App', () => {
     await expect(page.locator('h1')).toContainText('Receipts OCR');
 
     // Status indicator
-    await expect(page.locator('.status')).toBeVisible();
+    await expect(page.locator('.docker-status')).toBeVisible();
 
     // Tabs
     await expect(page.getByRole('button', { name: /upload/i })).toBeVisible();
@@ -32,11 +32,11 @@ test.describe('Receipts OCR App', () => {
     await page.waitForTimeout(3500);
 
     // Should show either healthy or fallback status
-    const status = page.locator('.status');
+    const status = page.locator('.docker-status');
     await expect(status).toBeVisible();
 
     const statusText = await status.textContent();
-    expect(statusText).toMatch(/PaddleOCR|Tesseract/);
+    expect(statusText).toMatch(/PaddleOCR|Docker|Tesseract|Checking/);
   });
 
   test('should upload image and show preview', async ({ page }) => {

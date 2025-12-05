@@ -16,6 +16,7 @@ import {
   rotateImageCanvas
 } from './services/ocrService';
 import './App.css';
+import { DockerStatus } from './components/DockerStatus';
 
 function App() {
   // State
@@ -241,10 +242,20 @@ function App() {
     <div className="app">
       <header className="header">
         <h1><FileText size={28} /> Receipts OCR</h1>
-        <div className="status">
-          <span className={`status-dot ${backendHealth.status}`} />
-          {backendHealth.status === 'healthy' ? 'PaddleOCR + PostgreSQL' : 'Tesseract.js (Offline)'}
-        </div>
+        <DockerStatus
+          onStatusChange={(isHealthy) => {
+            setBackendHealth({
+              status: isHealthy ? 'healthy' : 'unhealthy',
+              ocr_engine: isHealthy ? 'PaddleOCR' : undefined,
+              database: isHealthy ? 'PostgreSQL' : undefined
+            });
+            if (isHealthy) {
+              setOcrEngine('docker');
+            } else {
+              setOcrEngine('tesseract');
+            }
+          }}
+        />
       </header>
 
       <nav className="tabs">
