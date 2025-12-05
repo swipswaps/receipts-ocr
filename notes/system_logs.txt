@@ -1,0 +1,907 @@
+
+Receipts OCR
+✅PaddleOCR Readyready
+Receipt preview
+9:49:00 AMSelected: IMG_0371.heic (3835.7 KB)
+9:49:00 AMDetected HEIC image, converting to JPEG...
+9:49:14 AMHEIC converted (EXIF rotation applied by converter)
+Auto-scroll
+09:49:34.037ℹ️🌐← 200 http://localhost:5001/health (55ms)
+Details
+
+09:49:34.105✅🐳Switched to PaddleOCR backend
+09:49:34.105✅🐳✅ Docker backend healthy: ready
+09:49:34.144ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:34.144🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:34.196ℹ️🌐← 200 http://localhost:5001/health (52ms)
+Details
+
+09:49:34.263✅🐳Switched to PaddleOCR backend
+09:49:34.263✅🐳✅ Docker backend healthy: ready
+09:49:34.301ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:34.301🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:34.373ℹ️🌐← 200 http://localhost:5001/health (72ms)
+Details
+
+09:49:34.412✅🐳Switched to PaddleOCR backend
+09:49:34.412✅🐳✅ Docker backend healthy: ready
+09:49:34.461ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:34.461🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:34.567ℹ️🌐← 200 http://localhost:5001/health (106ms)
+Details
+
+09:49:34.613✅🐳Switched to PaddleOCR backend
+09:49:34.613✅🐳✅ Docker backend healthy: ready
+09:49:34.678ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:34.678🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:34.730ℹ️🌐← 200 http://localhost:5001/health (52ms)
+Details
+
+09:49:34.802✅🐳Switched to PaddleOCR backend
+09:49:34.802✅🐳✅ Docker backend healthy: ready
+09:49:34.880ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:34.880🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:34.936ℹ️🌐← 200 http://localhost:5001/health (56ms)
+Details
+
+09:49:35.007✅🐳Switched to PaddleOCR backend
+09:49:35.007✅🐳✅ Docker backend healthy: ready
+09:49:35.047ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:35.047🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:35.112ℹ️🌐← 200 http://localhost:5001/health (65ms)
+Details
+
+09:49:35.150✅🐳Switched to PaddleOCR backend
+09:49:35.150✅🐳✅ Docker backend healthy: ready
+09:49:35.188ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:35.188🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:35.253ℹ️🌐← 200 http://localhost:5001/health (65ms)
+Details
+
+09:49:35.293✅🐳Switched to PaddleOCR backend
+09:49:35.293✅🐳✅ Docker backend healthy: ready
+09:49:35.377ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:35.377🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:35.432ℹ️🌐← 200 http://localhost:5001/health (55ms)
+Details
+
+09:49:35.475✅🐳Switched to PaddleOCR backend
+09:49:35.475✅🐳✅ Docker backend healthy: ready
+09:49:35.547ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:35.547🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:35.598ℹ️🌐← 200 http://localhost:5001/health (51ms)
+Details
+
+09:49:35.666✅🐳Switched to PaddleOCR backend
+09:49:35.666✅🐳✅ Docker backend healthy: ready
+09:49:35.709ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:35.709🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:35.771ℹ️🌐← 200 http://localhost:5001/health (62ms)
+Details
+
+09:49:35.834✅🐳Switched to PaddleOCR backend
+09:49:35.834✅🐳✅ Docker backend healthy: ready
+09:49:35.884ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:35.884🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:35.971ℹ️🌐← 200 http://localhost:5001/health (87ms)
+Details
+
+09:49:36.009✅🐳Switched to PaddleOCR backend
+09:49:36.009✅🐳✅ Docker backend healthy: ready
+09:49:36.069ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:36.069🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:36.114ℹ️🌐← 200 http://localhost:5001/health (45ms)
+Details
+
+09:49:36.154✅🐳Switched to PaddleOCR backend
+09:49:36.154✅🐳✅ Docker backend healthy: ready
+09:49:36.225ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:36.225🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:36.283ℹ️🌐← 200 http://localhost:5001/health (58ms)
+Details
+
+09:49:36.351✅🐳Switched to PaddleOCR backend
+09:49:36.351✅🐳✅ Docker backend healthy: ready
+09:49:36.394ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:36.394🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:36.471ℹ️🌐← 200 http://localhost:5001/health (77ms)
+Details
+
+09:49:36.546✅🐳Switched to PaddleOCR backend
+09:49:36.546✅🐳✅ Docker backend healthy: ready
+09:49:36.591ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:36.591🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:36.689ℹ️🌐← 200 http://localhost:5001/health (98ms)
+Details
+
+09:49:36.750✅🐳Switched to PaddleOCR backend
+09:49:36.750✅🐳✅ Docker backend healthy: ready
+09:49:36.824ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:36.824🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:36.878ℹ️🌐← 200 http://localhost:5001/health (54ms)
+Details
+
+09:49:36.917✅🐳Switched to PaddleOCR backend
+09:49:36.917✅🐳✅ Docker backend healthy: ready
+09:49:36.978ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:36.978🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:37.031ℹ️🌐← 200 http://localhost:5001/health (53ms)
+Details
+
+09:49:37.119✅🐳Switched to PaddleOCR backend
+09:49:37.119✅🐳✅ Docker backend healthy: ready
+09:49:37.158ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:37.158🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:37.229ℹ️🌐← 200 http://localhost:5001/health (71ms)
+Details
+
+09:49:37.272✅🐳Switched to PaddleOCR backend
+09:49:37.272✅🐳✅ Docker backend healthy: ready
+09:49:37.313ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:37.313🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:37.386ℹ️🌐← 200 http://localhost:5001/health (73ms)
+Details
+
+09:49:37.425✅🐳Switched to PaddleOCR backend
+09:49:37.425✅🐳✅ Docker backend healthy: ready
+09:49:37.491ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:37.491🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:37.535ℹ️🌐← 200 http://localhost:5001/health (44ms)
+Details
+
+09:49:37.595✅🐳Switched to PaddleOCR backend
+09:49:37.595✅🐳✅ Docker backend healthy: ready
+09:49:37.651ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:37.651🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:37.703ℹ️🌐← 200 http://localhost:5001/health (52ms)
+Details
+
+09:49:37.768✅🐳Switched to PaddleOCR backend
+09:49:37.768✅🐳✅ Docker backend healthy: ready
+09:49:37.807ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:37.807🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:37.883ℹ️🌐← 200 http://localhost:5001/health (76ms)
+Details
+
+09:49:37.921✅🐳Switched to PaddleOCR backend
+09:49:37.921✅🐳✅ Docker backend healthy: ready
+09:49:37.984ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:37.984🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:38.034ℹ️🌐← 200 http://localhost:5001/health (50ms)
+Details
+
+09:49:38.076✅🐳Switched to PaddleOCR backend
+09:49:38.076✅🐳✅ Docker backend healthy: ready
+09:49:38.144ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:38.144🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:38.194ℹ️🌐← 200 http://localhost:5001/health (50ms)
+Details
+
+09:49:38.256✅🐳Switched to PaddleOCR backend
+09:49:38.256✅🐳✅ Docker backend healthy: ready
+09:49:38.291ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:38.291🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:38.352ℹ️🌐← 200 http://localhost:5001/health (61ms)
+Details
+
+09:49:38.388✅🐳Switched to PaddleOCR backend
+09:49:38.388✅🐳✅ Docker backend healthy: ready
+09:49:38.425ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:38.425🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:38.484ℹ️🌐← 200 http://localhost:5001/health (59ms)
+Details
+
+09:49:38.522✅🐳Switched to PaddleOCR backend
+09:49:38.522✅🐳✅ Docker backend healthy: ready
+09:49:38.581ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:38.581🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:38.625ℹ️🌐← 200 http://localhost:5001/health (44ms)
+Details
+
+09:49:38.683✅🐳Switched to PaddleOCR backend
+09:49:38.683✅🐳✅ Docker backend healthy: ready
+09:49:38.724ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:38.725🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:38.775ℹ️🌐← 200 http://localhost:5001/health (50ms)
+Details
+
+09:49:38.846✅🐳Switched to PaddleOCR backend
+09:49:38.846✅🐳✅ Docker backend healthy: ready
+09:49:38.894ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:38.894🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:38.969ℹ️🌐← 200 http://localhost:5001/health (75ms)
+Details
+
+09:49:39.007✅🐳Switched to PaddleOCR backend
+09:49:39.007✅🐳✅ Docker backend healthy: ready
+09:49:39.052ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:39.052🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:39.116ℹ️🌐← 200 http://localhost:5001/health (64ms)
+Details
+
+09:49:39.154✅🐳Switched to PaddleOCR backend
+09:49:39.154✅🐳✅ Docker backend healthy: ready
+09:49:39.213ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:39.213🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:39.256ℹ️🌐← 200 http://localhost:5001/health (43ms)
+Details
+
+09:49:39.317✅🐳Switched to PaddleOCR backend
+09:49:39.317✅🐳✅ Docker backend healthy: ready
+09:49:39.353ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:39.353🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:39.414ℹ️🌐← 200 http://localhost:5001/health (61ms)
+Details
+
+09:49:39.494✅🐳Switched to PaddleOCR backend
+09:49:39.494✅🐳✅ Docker backend healthy: ready
+09:49:39.539ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:39.539🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:39.616ℹ️🌐← 200 http://localhost:5001/health (77ms)
+Details
+
+09:49:39.655✅🐳Switched to PaddleOCR backend
+09:49:39.655✅🐳✅ Docker backend healthy: ready
+09:49:39.716ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:39.716🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:39.776ℹ️🌐← 200 http://localhost:5001/health (60ms)
+Details
+
+09:49:39.845✅🐳Switched to PaddleOCR backend
+09:49:39.845✅🐳✅ Docker backend healthy: ready
+09:49:39.892ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:39.892🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:39.962ℹ️🌐← 200 http://localhost:5001/health (70ms)
+Details
+
+09:49:40.039✅🐳Switched to PaddleOCR backend
+09:49:40.039✅🐳✅ Docker backend healthy: ready
+09:49:40.080ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:40.080🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:40.142ℹ️🌐← 200 http://localhost:5001/health (62ms)
+Details
+
+09:49:40.181✅🐳Switched to PaddleOCR backend
+09:49:40.181✅🐳✅ Docker backend healthy: ready
+09:49:40.242ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:40.242🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:40.295ℹ️🌐← 200 http://localhost:5001/health (53ms)
+Details
+
+09:49:40.336✅🐳Switched to PaddleOCR backend
+09:49:40.336✅🐳✅ Docker backend healthy: ready
+09:49:40.397ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:40.397🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:40.445ℹ️🌐← 200 http://localhost:5001/health (48ms)
+Details
+
+09:49:40.533✅🐳Switched to PaddleOCR backend
+09:49:40.533✅🐳✅ Docker backend healthy: ready
+09:49:40.584ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:40.585🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:40.709ℹ️🌐← 200 http://localhost:5001/health (124ms)
+Details
+
+09:49:40.751✅🐳Switched to PaddleOCR backend
+09:49:40.751✅🐳✅ Docker backend healthy: ready
+09:49:40.915ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:40.915🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:40.984ℹ️🌐← 200 http://localhost:5001/health (69ms)
+Details
+
+09:49:41.024✅🐳Switched to PaddleOCR backend
+09:49:41.024✅🐳✅ Docker backend healthy: ready
+09:49:41.091ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:41.091🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:41.137ℹ️🌐← 200 http://localhost:5001/health (46ms)
+Details
+
+09:49:41.200✅🐳Switched to PaddleOCR backend
+09:49:41.200✅🐳✅ Docker backend healthy: ready
+09:49:41.247ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:41.247🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:41.341ℹ️🌐← 200 http://localhost:5001/health (94ms)
+Details
+
+09:49:41.394✅🐳Switched to PaddleOCR backend
+09:49:41.394✅🐳✅ Docker backend healthy: ready
+09:49:41.441ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:41.441🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:41.538ℹ️🌐← 200 http://localhost:5001/health (97ms)
+Details
+
+09:49:41.597✅🐳Switched to PaddleOCR backend
+09:49:41.597✅🐳✅ Docker backend healthy: ready
+09:49:41.682ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:41.682🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:41.753ℹ️🌐← 200 http://localhost:5001/health (71ms)
+Details
+
+09:49:41.833✅🐳Switched to PaddleOCR backend
+09:49:41.833✅🐳✅ Docker backend healthy: ready
+09:49:41.877ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:41.877🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:41.930ℹ️🌐← 200 http://localhost:5001/health (53ms)
+Details
+
+09:49:41.983✅🐳Switched to PaddleOCR backend
+09:49:41.983✅🐳✅ Docker backend healthy: ready
+09:49:42.028ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:42.028🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:42.105ℹ️🌐← 200 http://localhost:5001/health (77ms)
+Details
+
+09:49:42.147✅🐳Switched to PaddleOCR backend
+09:49:42.147✅🐳✅ Docker backend healthy: ready
+09:49:42.246ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:42.246🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:42.309ℹ️🌐← 200 http://localhost:5001/health (63ms)
+Details
+
+09:49:42.386✅🐳Switched to PaddleOCR backend
+09:49:42.386✅🐳✅ Docker backend healthy: ready
+09:49:42.433ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:42.433🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:42.487ℹ️🌐← 200 http://localhost:5001/health (54ms)
+Details
+
+09:49:42.551✅🐳Switched to PaddleOCR backend
+09:49:42.551✅🐳✅ Docker backend healthy: ready
+09:49:42.595ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:42.595🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:42.684ℹ️🌐← 200 http://localhost:5001/health (89ms)
+Details
+
+09:49:42.729✅🐳Switched to PaddleOCR backend
+09:49:42.729✅🐳✅ Docker backend healthy: ready
+09:49:42.818ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:42.818🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:42.862ℹ️🌐← 200 http://localhost:5001/health (44ms)
+Details
+
+09:49:42.922✅🐳Switched to PaddleOCR backend
+09:49:42.922✅🐳✅ Docker backend healthy: ready
+09:49:42.967ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:42.967🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:43.014ℹ️🌐← 200 http://localhost:5001/health (47ms)
+Details
+
+09:49:43.088✅🐳Switched to PaddleOCR backend
+09:49:43.088✅🐳✅ Docker backend healthy: ready
+09:49:43.139ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:43.139🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:43.219ℹ️🌐← 200 http://localhost:5001/health (80ms)
+Details
+
+09:49:43.264✅🐳Switched to PaddleOCR backend
+09:49:43.264✅🐳✅ Docker backend healthy: ready
+09:49:43.337ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:43.337🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:43.392ℹ️🌐← 200 http://localhost:5001/health (55ms)
+Details
+
+09:49:43.471✅🐳Switched to PaddleOCR backend
+09:49:43.472✅🐳✅ Docker backend healthy: ready
+09:49:43.514ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:43.514🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:43.561ℹ️🌐← 200 http://localhost:5001/health (47ms)
+Details
+
+09:49:43.625✅🐳Switched to PaddleOCR backend
+09:49:43.625✅🐳✅ Docker backend healthy: ready
+09:49:43.668ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:43.668🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:43.745ℹ️🌐← 200 http://localhost:5001/health (77ms)
+Details
+
+09:49:43.795✅🐳Switched to PaddleOCR backend
+09:49:43.795✅🐳✅ Docker backend healthy: ready
+09:49:43.867ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:43.867🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:43.917ℹ️🌐← 200 http://localhost:5001/health (50ms)
+Details
+
+09:49:44.007✅🐳Switched to PaddleOCR backend
+09:49:44.007✅🐳✅ Docker backend healthy: ready
+09:49:44.057ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:44.057🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:44.116ℹ️🌐← 200 http://localhost:5001/health (59ms)
+Details
+
+09:49:44.197✅🐳Switched to PaddleOCR backend
+09:49:44.197✅🐳✅ Docker backend healthy: ready
+09:49:44.239ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:44.239🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:44.321ℹ️🌐← 200 http://localhost:5001/health (82ms)
+Details
+
+09:49:44.362✅🐳Switched to PaddleOCR backend
+09:49:44.362✅🐳✅ Docker backend healthy: ready
+09:49:44.432ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:44.432🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:44.480ℹ️🌐← 200 http://localhost:5001/health (48ms)
+Details
+
+09:49:44.541✅🐳Switched to PaddleOCR backend
+09:49:44.541✅🐳✅ Docker backend healthy: ready
+09:49:44.590ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:44.590🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:44.642ℹ️🌐← 200 http://localhost:5001/health (52ms)
+Details
+
+09:49:44.719✅🐳Switched to PaddleOCR backend
+09:49:44.719✅🐳✅ Docker backend healthy: ready
+09:49:44.759ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:44.759🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:44.835ℹ️🌐← 200 http://localhost:5001/health (76ms)
+Details
+
+09:49:44.884✅🐳Switched to PaddleOCR backend
+09:49:44.884✅🐳✅ Docker backend healthy: ready
+09:49:44.954ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:44.954🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:45.004ℹ️🌐← 200 http://localhost:5001/health (50ms)
+Details
+
+09:49:45.098✅🐳Switched to PaddleOCR backend
+09:49:45.098✅🐳✅ Docker backend healthy: ready
+09:49:45.153ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:45.153🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:45.219ℹ️🌐← 200 http://localhost:5001/health (66ms)
+Details
+
+09:49:45.286✅🐳Switched to PaddleOCR backend
+09:49:45.286✅🐳✅ Docker backend healthy: ready
+09:49:45.325ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:45.326🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:45.413ℹ️🌐← 200 http://localhost:5001/health (87ms)
+Details
+
+09:49:45.466✅🐳Switched to PaddleOCR backend
+09:49:45.466✅🐳✅ Docker backend healthy: ready
+09:49:45.537ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:45.537🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:45.597ℹ️🌐← 200 http://localhost:5001/health (60ms)
+Details
+
+09:49:45.670✅🐳Switched to PaddleOCR backend
+09:49:45.670✅🐳✅ Docker backend healthy: ready
+09:49:45.735ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:45.735🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:45.793ℹ️🌐← 200 http://localhost:5001/health (58ms)
+Details
+
+09:49:45.860✅🐳Switched to PaddleOCR backend
+09:49:45.860✅🐳✅ Docker backend healthy: ready
+09:49:45.907ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:45.907🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:46.019ℹ️🌐← 200 http://localhost:5001/health (112ms)
+Details
+
+09:49:46.059✅🐳Switched to PaddleOCR backend
+09:49:46.059✅🐳✅ Docker backend healthy: ready
+09:49:46.124ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:46.124🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:46.173ℹ️🌐← 200 http://localhost:5001/health (49ms)
+Details
+
+09:49:46.221✅🐳Switched to PaddleOCR backend
+09:49:46.221✅🐳✅ Docker backend healthy: ready
+09:49:46.292ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:46.292🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:46.333ℹ️🌐← 200 http://localhost:5001/health (41ms)
+Details
+
+09:49:46.393✅🐳Switched to PaddleOCR backend
+09:49:46.393✅🐳✅ Docker backend healthy: ready
+09:49:46.433ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:46.433🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:46.512ℹ️🌐← 200 http://localhost:5001/health (79ms)
+Details
+
+09:49:46.556✅🐳Switched to PaddleOCR backend
+09:49:46.556✅🐳✅ Docker backend healthy: ready
+09:49:46.605ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:46.605🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:46.678ℹ️🌐← 200 http://localhost:5001/health (73ms)
+Details
+
+09:49:46.719✅🐳Switched to PaddleOCR backend
+09:49:46.719✅🐳✅ Docker backend healthy: ready
+09:49:46.785ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:46.785🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:46.846ℹ️🌐← 200 http://localhost:5001/health (61ms)
+Details
+
+09:49:46.910✅🐳Switched to PaddleOCR backend
+09:49:46.910✅🐳✅ Docker backend healthy: ready
+09:49:46.952ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:46.953🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:47.028ℹ️🌐← 200 http://localhost:5001/health (75ms)
+Details
+
+09:49:47.081✅🐳Switched to PaddleOCR backend
+09:49:47.081✅🐳✅ Docker backend healthy: ready
+09:49:47.127ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:47.127🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:47.207ℹ️🌐← 200 http://localhost:5001/health (80ms)
+Details
+
+09:49:47.263✅🐳Switched to PaddleOCR backend
+09:49:47.263✅🐳✅ Docker backend healthy: ready
+09:49:47.331ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:47.331🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:47.395ℹ️🌐← 200 http://localhost:5001/health (64ms)
+Details
+
+09:49:47.464✅🐳Switched to PaddleOCR backend
+09:49:47.464✅🐳✅ Docker backend healthy: ready
+09:49:47.505ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:47.505🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:47.547ℹ️🌐← 200 http://localhost:5001/health (42ms)
+Details
+
+09:49:47.613✅🐳Switched to PaddleOCR backend
+09:49:47.613✅🐳✅ Docker backend healthy: ready
+09:49:47.655ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:47.655🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:47.733ℹ️🌐← 200 http://localhost:5001/health (78ms)
+Details
+
+09:49:47.785✅🐳Switched to PaddleOCR backend
+09:49:47.785✅🐳✅ Docker backend healthy: ready
+09:49:47.855ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:47.856🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:47.910ℹ️🌐← 200 http://localhost:5001/health (54ms)
+Details
+
+09:49:47.952✅🐳Switched to PaddleOCR backend
+09:49:47.952✅🐳✅ Docker backend healthy: ready
+09:49:48.013ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:48.013🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:48.059ℹ️🌐← 200 http://localhost:5001/health (46ms)
+Details
+
+09:49:48.128✅🐳Switched to PaddleOCR backend
+09:49:48.128✅🐳✅ Docker backend healthy: ready
+09:49:48.173ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:48.173🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:48.249ℹ️🌐← 200 http://localhost:5001/health (76ms)
+Details
+
+09:49:48.295✅🐳Switched to PaddleOCR backend
+09:49:48.295✅🐳✅ Docker backend healthy: ready
+09:49:48.344ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:48.344🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:48.422ℹ️🌐← 200 http://localhost:5001/health (78ms)
+Details
+
+09:49:48.465✅🐳Switched to PaddleOCR backend
+09:49:48.465✅🐳✅ Docker backend healthy: ready
+09:49:48.543ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:48.543🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:48.596ℹ️🌐← 200 http://localhost:5001/health (53ms)
+Details
+
+09:49:48.660✅🐳Switched to PaddleOCR backend
+09:49:48.660✅🐳✅ Docker backend healthy: ready
+09:49:48.702ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:48.702🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:48.743ℹ️🌐← 200 http://localhost:5001/health (41ms)
+Details
+
+09:49:48.813✅🐳Switched to PaddleOCR backend
+09:49:48.814✅🐳✅ Docker backend healthy: ready
+09:49:48.856ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:48.856🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:48.928ℹ️🌐← 200 http://localhost:5001/health (72ms)
+Details
+
+09:49:48.966✅🐳Switched to PaddleOCR backend
+09:49:48.966✅🐳✅ Docker backend healthy: ready
+09:49:49.027ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:49.027🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:49.085ℹ️🌐← 200 http://localhost:5001/health (58ms)
+Details
+
+09:49:49.125✅🐳Switched to PaddleOCR backend
+09:49:49.125✅🐳✅ Docker backend healthy: ready
+09:49:49.198ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:49.198🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:49.249ℹ️🌐← 200 http://localhost:5001/health (51ms)
+Details
+
+09:49:49.319✅🐳Switched to PaddleOCR backend
+09:49:49.319✅🐳✅ Docker backend healthy: ready
+09:49:49.363ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:49.363🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:49.433ℹ️🌐← 200 http://localhost:5001/health (70ms)
+Details
+
+09:49:49.477✅🐳Switched to PaddleOCR backend
+09:49:49.477✅🐳✅ Docker backend healthy: ready
+09:49:49.517ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:49.517🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:49.592ℹ️🌐← 200 http://localhost:5001/health (75ms)
+Details
+
+09:49:49.656✅🐳Switched to PaddleOCR backend
+09:49:49.656✅🐳✅ Docker backend healthy: ready
+09:49:49.723ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:49.723🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:49.772ℹ️🌐← 200 http://localhost:5001/health (49ms)
+Details
+
+09:49:49.813✅🐳Switched to PaddleOCR backend
+09:49:49.813✅🐳✅ Docker backend healthy: ready
+09:49:49.878ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:49.878🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:49.921ℹ️🌐← 200 http://localhost:5001/health (43ms)
+Details
+
+09:49:49.986✅🐳Switched to PaddleOCR backend
+09:49:49.986✅🐳✅ Docker backend healthy: ready
+09:49:50.029ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:50.029🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:50.085ℹ️🌐← 200 http://localhost:5001/health (56ms)
+Details
+
+09:49:50.139✅🐳Switched to PaddleOCR backend
+09:49:50.139✅🐳✅ Docker backend healthy: ready
+09:49:50.321ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:50.321🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:50.418ℹ️🌐← 200 http://localhost:5001/health (97ms)
+Details
+
+09:49:50.461✅🐳Switched to PaddleOCR backend
+09:49:50.461✅🐳✅ Docker backend healthy: ready
+09:49:50.532ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:50.532🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:50.583ℹ️🌐← 200 http://localhost:5001/health (51ms)
+Details
+
+09:49:50.620✅🐳Switched to PaddleOCR backend
+09:49:50.620✅🐳✅ Docker backend healthy: ready
+09:49:50.698ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:50.698🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:50.768ℹ️🌐← 200 http://localhost:5001/health (70ms)
+Details
+
+09:49:50.837✅🐳Switched to PaddleOCR backend
+09:49:50.837✅🐳✅ Docker backend healthy: ready
+09:49:50.886ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:50.886🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:50.978ℹ️🌐← 200 http://localhost:5001/health (92ms)
+Details
+
+09:49:51.025✅🐳Switched to PaddleOCR backend
+09:49:51.025✅🐳✅ Docker backend healthy: ready
+09:49:51.073ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:51.073🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:51.157ℹ️🌐← 200 http://localhost:5001/health (84ms)
+Details
+
+09:49:51.199✅🐳Switched to PaddleOCR backend
+09:49:51.199✅🐳✅ Docker backend healthy: ready
+09:49:51.264ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:51.264🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:51.342ℹ️🌐← 200 http://localhost:5001/health (78ms)
+Details
+
+09:49:51.400✅🐳Switched to PaddleOCR backend
+09:49:51.400✅🐳✅ Docker backend healthy: ready
+09:49:51.450ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:51.450🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:51.554ℹ️🌐← 200 http://localhost:5001/health (104ms)
+Details
+
+09:49:51.619✅🐳Switched to PaddleOCR backend
+09:49:51.620✅🐳✅ Docker backend healthy: ready
+09:49:51.665ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:51.665🔍🌐→ GET http://localhost:5001/health
+Details
+
+09:49:51.736ℹ️🌐← 200 http://localhost:5001/health (71ms)
+Details
+
+09:49:51.781✅🐳Switched to PaddleOCR backend
+09:49:51.781✅🐳✅ Docker backend healthy: ready
+09:49:51.827ℹ️🐳🐳 Starting Docker health monitoring...
+09:49:51.827🔍🌐→ GET http://localhost:5001/health
+Details

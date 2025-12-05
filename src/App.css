@@ -25,6 +25,7 @@ body {
   max-width: 900px;
   margin: 0 auto;
   padding: 1rem;
+  padding-bottom: 320px; /* Space for system logs panel */
 }
 
 /* Header */

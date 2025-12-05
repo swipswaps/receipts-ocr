@@ -76,6 +76,10 @@ class SystemLogger {
     };
   }
 
+  private lastMessage: string | null = null;
+  private lastMessageCount: number = 0;
+  private lastMessageId: string | null = null;
+
   log(
     level: LogLevel,
     category: SystemLogEntry['category'],
@@ -83,6 +87,26 @@ class SystemLogger {
     details?: Record<string, unknown>,
     stack?: string
   ): void {
+    const messageKey = `${level}:${category}:${message}`;
+
+    // Check for repeated message
+    if (messageKey === this.lastMessage && this.lastMessageId) {
+      this.lastMessageCount++;
+      // Update the last entry's message to show count
+      const lastEntry = this.logs.find(l => l.id === this.lastMessageId);
+      if (lastEntry) {
+        lastEntry.message = `${message} (×${this.lastMessageCount})`;
+        lastEntry.timestamp = new Date(); // Update timestamp
+        // Notify listeners of update
+        this.listeners.forEach(listener => listener(lastEntry));
+      }
+      return;
+    }
+
+    // New message - reset counter
+    this.lastMessage = messageKey;
+    this.lastMessageCount = 1;
+
     const entry: SystemLogEntry = {
       id: this.generateId(),
       timestamp: new Date(),
@@ -93,6 +117,7 @@ class SystemLogger {
       stack
     };
 
+    this.lastMessageId = entry.id;
     this.logs.push(entry);
 
     // Trim old logs
