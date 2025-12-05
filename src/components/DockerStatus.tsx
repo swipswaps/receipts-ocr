@@ -3,7 +3,8 @@
  * Shows connection status and setup instructions for the backend container
  */
 import { useState, useEffect } from 'react';
-import { dockerHealthService, DockerHealthStatus } from '../services/dockerHealthService';
+import { dockerHealthService } from '../services/dockerHealthService';
+import type { DockerHealthStatus } from '../services/dockerHealthService';
 
 interface DockerStatusProps {
   onStatusChange?: (isHealthy: boolean) => void;
