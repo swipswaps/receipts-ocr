@@ -629,3 +629,385 @@ body {
 .docker-status .github-link:hover {
   text-decoration: underline;
 }
+
+/* ============================================
+   System Logs Panel Styles
+   ============================================ */
+.system-logs-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1e1e1e;
+  border-top: 2px solid #333;
+  z-index: 1000;
+  transition: height 0.3s ease;
+}
+
+.system-logs-panel.closed {
+  height: 40px;
+}
+
+.system-logs-panel.open {
+  height: 300px;
+}
+
+.logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: #2d2d2d;
+  cursor: pointer;
+  user-select: none;
+}
+
+.logs-title {
+  font-weight: 600;
+  color: #fff;
+}
+
+.log-count {
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #4a9eff;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.toggle-icon {
+  color: #888;
+}
+
+.logs-controls {
+  display: flex;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #252525;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.logs-controls select {
+  padding: 4px 8px;
+  background: #333;
+  border: 1px solid #444;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.logs-controls .autoscroll-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #aaa;
+  font-size: 13px;
+}
+
+.logs-controls .clear-btn {
+  padding: 4px 12px;
+  background: #444;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.logs-controls .clear-btn:hover {
+  background: #555;
+}
+
+.logs-container {
+  height: calc(100% - 90px);
+  overflow-y: auto;
+  padding: 8px 16px;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 12px;
+}
+
+.log-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+  border-left: 3px solid;
+  padding-left: 8px;
+  margin: 2px 0;
+}
+
+.log-entry.level-debug { opacity: 0.7; }
+.log-entry.level-error { background: rgba(255,82,82,0.1); }
+.log-entry.level-warn { background: rgba(255,171,0,0.1); }
+.log-entry.level-success { background: rgba(0,200,83,0.1); }
+
+.log-time {
+  color: #666;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.log-icon, .log-category {
+  flex-shrink: 0;
+}
+
+.log-message {
+  color: #ddd;
+  word-break: break-word;
+}
+
+.log-details, .log-stack {
+  margin-top: 4px;
+  width: 100%;
+}
+
+.log-details summary, .log-stack summary {
+  cursor: pointer;
+  color: #888;
+  font-size: 11px;
+}
+
+.log-details pre, .log-stack pre {
+  background: #111;
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
+.no-logs {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+}
+
+/* ============================================
+   Troubleshooting Wizard Styles
+   ============================================ */
+.troubleshooting-wizard-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.troubleshooting-wizard {
+  background: #1e1e1e;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.wizard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #333;
+}
+
+.wizard-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.wizard-header .close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.wizard-header .close-btn:hover {
+  color: #fff;
+}
+
+.wizard-content {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.running-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #252525;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.running-indicator .spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.diagnostic-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diagnostic-item {
+  padding: 12px;
+  background: #252525;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.diagnostic-item:hover {
+  background: #2a2a2a;
+}
+
+.diagnostic-item.pass { border-left: 4px solid #00c853; }
+.diagnostic-item.fail { border-left: 4px solid #ff5252; }
+.diagnostic-item.warn { border-left: 4px solid #ffab00; }
+
+.diagnostic-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.check-name {
+  font-weight: 600;
+}
+
+.expand-hint {
+  margin-left: auto;
+  color: #666;
+  font-size: 12px;
+}
+
+.diagnostic-message {
+  margin-top: 4px;
+  color: #aaa;
+  font-size: 13px;
+}
+
+.diagnostic-fix {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #333;
+}
+
+.diagnostic-fix strong {
+  color: #4a9eff;
+}
+
+.diagnostic-fix p {
+  margin: 8px 0;
+  color: #ddd;
+}
+
+.command-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #111;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.command-block code {
+  flex: 1;
+  color: #00c853;
+  font-family: monospace;
+}
+
+.command-block button {
+  padding: 4px 12px;
+  background: #333;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.command-block button:hover {
+  background: #444;
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #333;
+}
+
+.wizard-actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.wizard-actions .retry-btn {
+  background: #4a9eff;
+  color: #fff;
+}
+
+.wizard-actions .retry-btn:hover {
+  background: #3d8ce6;
+}
+
+.wizard-actions .close-btn {
+  background: #333;
+  color: #fff;
+}
+
+.wizard-actions .close-btn:hover {
+  background: #444;
+}
+
+/* ============================================
+   Docker Status Updates
+   ============================================ */
+.docker-status .status-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.docker-status .troubleshoot-btn {
+  padding: 8px 16px;
+  background: #ff9800;
+  border: none;
+  color: #000;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.docker-status .troubleshoot-btn:hover {
+  background: #ffb74d;
+}
+
+.docker-status .retry-info {
+  color: #ff9800;
+  font-size: 13px;
+  margin: 8px 0;
+}

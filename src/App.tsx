@@ -17,6 +17,9 @@ import {
 } from './services/ocrService';
 import './App.css';
 import { DockerStatus } from './components/DockerStatus';
+import { SystemLogsPanel } from './components/SystemLogsPanel';
+import { TroubleshootingWizard } from './components/TroubleshootingWizard';
+import { systemLogger } from './services/systemLogger';
 
 function App() {
   // State
@@ -31,6 +34,8 @@ function App() {
   const [ocrEngine, setOcrEngine] = useState<OcrEngine>('docker');
   const [activeOutputTab, setActiveOutputTab] = useState<OutputTab>('text');
   const [extractedText, setExtractedText] = useState<string>('');
+  const [showSystemLogs, setShowSystemLogs] = useState(false);
+  const [showTroubleshooter, setShowTroubleshooter] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -251,10 +256,13 @@ function App() {
             });
             if (isHealthy) {
               setOcrEngine('docker');
+              systemLogger.success('docker', 'Switched to PaddleOCR backend');
             } else {
               setOcrEngine('tesseract');
+              systemLogger.warn('docker', 'Switched to Tesseract.js fallback');
             }
           }}
+          onTroubleshoot={() => setShowTroubleshooter(true)}
         />
       </header>
 
@@ -496,6 +504,17 @@ function App() {
           </div>
         )}
       </main>
+      {/* System Logs Panel */}
+      <SystemLogsPanel
+        isOpen={showSystemLogs}
+        onToggle={() => setShowSystemLogs(!showSystemLogs)}
+      />
+
+      {/* Troubleshooting Wizard Modal */}
+      <TroubleshootingWizard
+        isOpen={showTroubleshooter}
+        onClose={() => setShowTroubleshooter(false)}
+      />
     </div>
   );
 }

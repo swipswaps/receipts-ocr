@@ -5,20 +5,30 @@
 import { useState, useEffect } from 'react';
 import { dockerHealthService } from '../services/dockerHealthService';
 import type { DockerHealthStatus } from '../services/dockerHealthService';
+import { systemLogger } from '../services/systemLogger';
 
 interface DockerStatusProps {
   onStatusChange?: (isHealthy: boolean) => void;
+  onTroubleshoot?: () => void;
 }
 
-export const DockerStatus = ({ onStatusChange }: DockerStatusProps) => {
+export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusProps) => {
   const [status, setStatus] = useState<DockerHealthStatus | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
+    systemLogger.info('docker', '🐳 Starting Docker health monitoring...');
+
     dockerHealthService.startMonitoring((newStatus) => {
       setStatus(newStatus);
       onStatusChange?.(newStatus.isHealthy);
+
+      if (newStatus.isHealthy) {
+        systemLogger.success('docker', `✅ Docker backend healthy: ${newStatus.ocrEngine || 'PaddleOCR'}`);
+      } else {
+        systemLogger.warn('docker', `⚠️ Docker backend unavailable: ${newStatus.error || 'Connection failed'}`);
+      }
     });
 
     return () => dockerHealthService.stopMonitoring();
@@ -26,6 +36,8 @@ export const DockerStatus = ({ onStatusChange }: DockerStatusProps) => {
 
   const handleRetry = async () => {
     setChecking(true);
+    systemLogger.info('docker', '🔄 Retrying Docker connection...');
+
     const newStatus = await dockerHealthService.forceCheck();
     setStatus(newStatus);
     onStatusChange?.(newStatus.isHealthy);
@@ -64,8 +76,14 @@ export const DockerStatus = ({ onStatusChange }: DockerStatusProps) => {
       {expanded && (
         <div className="status-details">
           <p className="error-message">
-            {status.error || 'Cannot connect to backend on port 5001'}
+            <strong>Error:</strong> {status.error || 'Cannot connect to backend on port 5001'}
           </p>
+
+          {status.retryCount > 0 && (
+            <p className="retry-info">
+              Retry attempts: {status.retryCount} / 3
+            </p>
+          )}
 
           <div className="fallback-info">
             <p>📋 Using browser-based Tesseract.js as fallback</p>
@@ -87,13 +105,24 @@ export const DockerStatus = ({ onStatusChange }: DockerStatusProps) => {
             </ol>
           </div>
 
-          <button
-            className="retry-btn"
-            onClick={handleRetry}
-            disabled={checking}
-          >
-            {checking ? '🔄 Checking...' : '🔁 Retry Connection'}
-          </button>
+          <div className="status-actions">
+            <button
+              className="retry-btn"
+              onClick={handleRetry}
+              disabled={checking}
+            >
+              {checking ? '🔄 Checking...' : '🔁 Retry Connection'}
+            </button>
+
+            {onTroubleshoot && (
+              <button
+                className="troubleshoot-btn"
+                onClick={onTroubleshoot}
+              >
+                🔧 Run Diagnostics
+              </button>
+            )}
+          </div>
 
           <a
             href="https://github.com/swipswaps/receipts-ocr"
