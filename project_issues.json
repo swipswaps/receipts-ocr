@@ -1,0 +1,328 @@
+{
+  "project": "receipts-ocr",
+  "repository": "https://github.com/swipswaps/receipts-ocr",
+  "last_updated": "2025-12-06",
+  "summary": {
+    "total_issues": 22,
+    "fixed": 20,
+    "known_limitations": 2,
+    "chat_logs_reviewed": [
+      "/home/owner/Documents/Docker-OCR-2/chatLog.txt",
+      "/home/owner/Documents/Docker-OCR-2/chatLog2.txt",
+      "/home/owner/Documents/Docker-OCR-2/chatLog3.txt"
+    ]
+  },
+  "issues": [
+    {
+      "id": 1,
+      "category": "backend",
+      "title": "PaddleOCR v3+ API Incompatibility",
+      "status": "FIXED",
+      "severity": "critical",
+      "symptom": "503 error, 'not_initialized' status, OCR fails completely",
+      "root_cause": "PaddleOCR v3+ uses different initialization parameters than v2",
+      "file": "backend/app.py",
+      "fix": {
+        "removed_params": ["use_gpu", "enable_mkldnn", "cpu_threads", "use_tensorrt", "use_mp", "rec_batch_num"],
+        "added_params": ["use_doc_orientation_classify", "use_doc_unwarping", "use_textline_orientation"],
+        "renamed_params": {
+          "det_limit_side_len": "text_det_limit_side_len",
+          "det_db_thresh": "text_det_thresh"
+        },
+        "api_change": "Changed ocr.ocr(image, cls=False) to ocr.predict(image)"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 2,
+      "category": "frontend",
+      "title": "Logs Disappearing on Extract Text Click",
+      "status": "FIXED",
+      "severity": "high",
+      "symptom": "All preprocessing logs (HEIC conversion, orientation detection) cleared when clicking Extract Text",
+      "root_cause": "setLogs([]) was called at start of processReceipt() function",
+      "file": "src/App.tsx",
+      "fix": {
+        "action": "Removed setLogs([]) from processReceipt() - logs should only clear on new file selection"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 3,
+      "category": "frontend",
+      "title": "HEIC Race Condition - 400 Error",
+      "status": "FIXED",
+      "severity": "high",
+      "symptom": "Backend error 400 when processing HEIC files, OCR runs before conversion completes",
+      "root_cause": "Extract Text button clickable during HEIC preprocessing, file sent before conversion complete",
+      "file": "src/App.tsx",
+      "fix": {
+        "action": "Added isPreprocessing state to disable button and show 'Preparing...' during HEIC conversion"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 4,
+      "category": "frontend",
+      "title": "Health Check Log Spam",
+      "status": "FIXED",
+      "severity": "high",
+      "symptom": "System logs flooded with thousands of health check requests per second",
+      "root_cause": "DockerStatus useEffect had [onStatusChange] dependency causing re-registration on every render",
+      "file": "src/components/DockerStatus.tsx",
+      "fix": {
+        "action": "Added hasStartedRef to ensure monitoring only starts once, removed onStatusChange from dependencies"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 5,
+      "category": "frontend",
+      "title": "Network Request Log Spam - Health Checks",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "Every /health fetch logged in system logs panel",
+      "root_cause": "Fetch interceptor logged all requests including noisy health checks",
+      "file": "src/services/systemLogger.ts",
+      "fix": {
+        "action": "Added SKIP_LOGGING_PATTERNS = ['/health'] to exclude health endpoint from logging"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 6,
+      "category": "frontend",
+      "title": "Base64 Image Data Flooding Logs - Browser Memory Spike",
+      "status": "FIXED",
+      "severity": "critical",
+      "symptom": "Page slows to crawl, memory spikes, text unselectable, browser crashes",
+      "root_cause": "Network logger stored entire base64 image data (megabytes) in log entries for data: URLs",
+      "file": "src/services/systemLogger.ts",
+      "evidence": "stalledLogs.txt line 49: '→ GET data:image/jpeg;base64,/9j/4AAQSkZJRg...'",
+      "fix": {
+        "action": "Added data: URL detection to skip logging, added truncateUrl() function to limit URL length to 80 chars"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 7,
+      "category": "frontend",
+      "title": "Empty Log Messages in System Logs Panel",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "Log entries show just timestamp and icon with no message text",
+      "root_cause": "systemLogger.info() called with (message) instead of (category, message) - message used as category",
+      "file": "src/services/angleDetectionService.ts",
+      "fix": {
+        "action": "Changed systemLogger.info('message') to systemLogger.info('ocr', 'message') for all calls"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 8,
+      "category": "deployment",
+      "title": "GitHub Pages Shows Docker as Available",
+      "status": "FIXED",
+      "severity": "low",
+      "symptom": "GitHub Pages users confused when app shows misleading status",
+      "root_cause": "No detection of github.io hostname to show appropriate messaging",
+      "file": "src/components/DockerStatus.tsx",
+      "fix": {
+        "action": "Added isGitHubPages detection and prominent notice explaining frontend-only demo"
+      },
+      "verified_by": "manual"
+    },
+    {
+      "id": 9,
+      "category": "backend",
+      "title": "Image Upside Down - Rotation Detection Not Applied",
+      "status": "FIXED",
+      "severity": "high",
+      "symptom": "Image appears upside down, OCR produces garbage text",
+      "root_cause": "/detect-rotation endpoint was missing, Tesseract OSD not integrated",
+      "files": ["backend/app.py", "src/services/angleDetectionService.ts", "src/App.tsx"],
+      "fix": {
+        "action": "Added /detect-rotation endpoint using Tesseract OSD, created angleDetectionService.ts, integrated auto-rotation in handleFileSelect"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 10,
+      "category": "backend",
+      "title": "Tesseract Not Installed in Docker",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "/detect-rotation endpoint fails, tesseract command not found",
+      "root_cause": "Dockerfile did not include tesseract-ocr and tesseract-ocr-osd packages",
+      "file": "backend/Dockerfile",
+      "fix": {
+        "action": "Added 'tesseract-ocr tesseract-ocr-osd' to apt-get install"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 11,
+      "category": "frontend",
+      "title": "Text Lumped Together - Missing Spaces",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "Text like 'Canadian Solar370-395wSolar' instead of 'Canadian Solar 370-395W Solar'",
+      "root_cause": "No post-processing to separate numbers/units from text",
+      "file": "backend/app.py",
+      "fix": {
+        "action": "Added add_spaces_around_numbers() function to post-process OCR text"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 12,
+      "category": "frontend",
+      "title": "XLSX Tab Empty - Blocks Not Passed",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "XLSX tab shows 'No OCR blocks available'",
+      "root_cause": "processDocumentWithDocker didn't include blocks in its return object",
+      "file": "src/services/geminiService.ts",
+      "fix": {
+        "action": "Added 'blocks: data.blocks || []' to the return object"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 13,
+      "category": "backend",
+      "title": "det_limit_side_len Too Low - Text Missed",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "Missing text in high-resolution images (4032px)",
+      "root_cause": "det_limit_side_len=960 caused downscaling, missing small text",
+      "file": "backend/app.py",
+      "fix": {
+        "action": "Increased text_det_limit_side_len to 2560, lowered text_det_thresh to 0.3"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 14,
+      "category": "backend",
+      "title": "Table Columns Not Aligned",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "Text from different columns concatenated on same row",
+      "root_cause": "Gap-based column detection used fixed threshold, not adaptive",
+      "file": "backend/app.py",
+      "fix": {
+        "action": "Added OpenCV-based table cell detection, use cell boundaries for column assignment"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 15,
+      "category": "process",
+      "title": "Dev Server Not Restarted After Changes",
+      "status": "PROCESS_ISSUE",
+      "severity": "high",
+      "symptom": "User sees old behavior after fixes are applied",
+      "root_cause": "Vite dev server caches code, needs restart to pick up changes",
+      "fix": {
+        "action": "Always restart dev server (npm run dev) after making changes"
+      },
+      "verified_by": "user"
+    },
+    {
+      "id": 16,
+      "category": "backend",
+      "title": "Gunicorn Logging Not Visible",
+      "status": "FIXED",
+      "severity": "low",
+      "symptom": "Backend logs not appearing in docker logs",
+      "root_cause": "gunicorn --capture-output doesn't show info logs by default",
+      "file": "backend/Dockerfile",
+      "fix": {
+        "action": "Added --log-level info to gunicorn command"
+      },
+      "verified_by": "manual"
+    },
+    {
+      "id": 17,
+      "category": "backend",
+      "title": "OCR Processing Takes 90+ Seconds",
+      "status": "KNOWN_LIMITATION",
+      "severity": "low",
+      "symptom": "Large HEIC images take very long to process",
+      "root_cause": "CPU-only PaddleOCR processing of 4032x3024 images is slow",
+      "workaround": "Normal behavior for high-resolution images on CPU"
+    },
+    {
+      "id": 18,
+      "category": "backend",
+      "title": "Tesseract.js Fallback Produces Garbage",
+      "status": "KNOWN_LIMITATION",
+      "severity": "low",
+      "symptom": "When Docker unavailable, Tesseract.js produces unreadable output",
+      "root_cause": "Tesseract.js is less accurate than PaddleOCR, especially without preprocessing",
+      "workaround": "Use manual rotation controls, or run Docker locally for PaddleOCR"
+    },
+    {
+      "id": 19,
+      "category": "testing",
+      "title": "Selenium Test Using Wrong CSS Selectors",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "Tests fail to find elements, claim success when app is broken",
+      "root_cause": "Used '.extract-btn' instead of '.btn.primary', '.tab-btn' instead of '.output-tab'",
+      "fix": {
+        "action": "Updated selectors to match actual DOM elements"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 20,
+      "category": "testing",
+      "title": "Selenium Test Timeout Too Short",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "Tests timeout before OCR completes",
+      "root_cause": "90s timeout insufficient for ~95s OCR processing",
+      "fix": {
+        "action": "Increased max_wait to 120s, added incremental progress checking"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 21,
+      "category": "frontend",
+      "title": "Output Tabs Not Visible",
+      "status": "FIXED",
+      "severity": "high",
+      "symptom": "User reported 'no tabs displayed'",
+      "root_cause": "Output section only renders when ocrResult has data",
+      "file": "src/App.tsx",
+      "fix": {
+        "action": "Verified tabs render correctly when OCR completes"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 22,
+      "category": "frontend",
+      "title": "Verbatim Backend Logs Not Displayed",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "User requested verbatim logs for troubleshooting",
+      "root_cause": "Backend logs were only in docker logs, not in frontend UI",
+      "files": ["backend/app.py", "src/services/ocrService.ts"],
+      "fix": {
+        "action": "Backend returns logs in JSON response, frontend displays them via onLog callback"
+      },
+      "verified_by": "selenium"
+    }
+  ],
+  "verification_methods": {
+    "selenium_test": "python3 with selenium.webdriver.Firefox (private mode)",
+    "heic_test_file": "/home/owner/Downloads/IMG_0371.heic",
+    "expected_ocr_output": "Canadian Solar 370-395W Solar Panels, JA Solar, NEXTracker, Tigo Energy",
+    "quality_gates": "11 pre-commit hooks (ESLint, TypeScript, Ruff, Mypy, bundle size)",
+    "playwright_tests": "10 E2E tests in e2e/ directory"
+  }
+}

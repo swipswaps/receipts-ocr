@@ -22,7 +22,7 @@ interface RotationDetectionResult {
  */
 export async function detectRotation(imageDataUrl: string): Promise<RotationDetectionResult> {
   try {
-    systemLogger.info('Sending image for rotation detection...');
+    systemLogger.info('ocr', 'Sending image for rotation detection...');
 
     // Extract base64 data from data URL
     const base64Data = imageDataUrl.includes(',')
@@ -41,7 +41,7 @@ export async function detectRotation(imageDataUrl: string): Promise<RotationDete
 
     const result = await response.json();
 
-    systemLogger.info(`OSD result: orientation=${result.orientation}°, confidence=${result.confidence?.toFixed(2)}`);
+    systemLogger.info('ocr', `OSD result: orientation=${result.orientation}°, confidence=${result.confidence?.toFixed(2)}`);
 
     // Calculate correction angle
     // If Tesseract says text is at 90°, we need to rotate 270° (or -90°) to correct
@@ -62,7 +62,7 @@ export async function detectRotation(imageDataUrl: string): Promise<RotationDete
       rotate: result.rotate || 0,
     };
   } catch (error) {
-    systemLogger.warn(`Rotation detection failed: ${error}`);
+    systemLogger.warn('ocr', `Rotation detection failed: ${error}`);
     return {
       success: false,
       orientation: 0,
@@ -129,18 +129,18 @@ export async function autoCorrectRotation(
   const detection = await detectRotation(imageDataUrl);
 
   if (!detection.success || detection.confidence < confidenceThreshold) {
-    systemLogger.info('Rotation detection: No correction needed or low confidence');
+    systemLogger.info('ocr', 'Rotation detection: No correction needed or low confidence');
     return { corrected: false, imageDataUrl, angle: 0 };
   }
 
   if (detection.correctionAngle === 0) {
-    systemLogger.info('Rotation detection: Image is upright');
+    systemLogger.info('ocr', 'Rotation detection: Image is upright');
     return { corrected: false, imageDataUrl, angle: 0 };
   }
 
-  systemLogger.info(`Applying ${detection.correctionAngle}° rotation correction...`);
+  systemLogger.info('ocr', `Applying ${detection.correctionAngle}° rotation correction...`);
   const rotatedImage = await rotateImage(imageDataUrl, detection.correctionAngle);
-  systemLogger.success('Rotation correction applied successfully');
+  systemLogger.success('ocr', 'Rotation correction applied successfully');
 
   return { corrected: true, imageDataUrl: rotatedImage, angle: detection.correctionAngle };
 }

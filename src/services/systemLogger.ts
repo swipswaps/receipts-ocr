@@ -39,16 +39,29 @@ class SystemLogger {
     // Skip logging for these endpoints (too noisy)
     const SKIP_LOGGING_PATTERNS = ['/health'];
 
+    // Truncate long URLs for display (especially data: URLs with base64)
+    const truncateUrl = (url: string, maxLength: number = 80): string => {
+      if (url.startsWith('data:')) {
+        // For data URLs, show just the type
+        const match = url.match(/^data:([^;,]+)/);
+        return match ? `data:${match[1]}... (${Math.round(url.length / 1024)}KB)` : 'data:... (blob)';
+      }
+      if (url.length <= maxLength) return url;
+      return url.substring(0, maxLength) + '...';
+    };
+
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       const method = init?.method || 'GET';
       const startTime = Date.now();
 
-      // Skip logging for health checks (too noisy)
-      const shouldSkipLog = SKIP_LOGGING_PATTERNS.some(pattern => url.includes(pattern));
+      // Skip logging for health checks (too noisy) and data: URLs (too large)
+      const shouldSkipLog = SKIP_LOGGING_PATTERNS.some(pattern => url.includes(pattern)) || url.startsWith('data:');
+
+      const displayUrl = truncateUrl(url);
 
       if (!shouldSkipLog) {
-        logFn('debug', 'network', `→ ${method} ${url}`, { method, url });
+        logFn('debug', 'network', `→ ${method} ${displayUrl}`, { method, url: displayUrl });
       }
 
       try {
@@ -57,17 +70,17 @@ class SystemLogger {
 
         if (!shouldSkipLog) {
           if (response.ok) {
-            logFn('info', 'network', `← ${response.status} ${url} (${duration}ms)`, {
+            logFn('info', 'network', `← ${response.status} ${displayUrl} (${duration}ms)`, {
               status: response.status,
               duration,
-              url
+              url: displayUrl
             });
           } else {
-            logFn('warn', 'network', `← ${response.status} ${response.statusText} ${url} (${duration}ms)`, {
+            logFn('warn', 'network', `← ${response.status} ${response.statusText} ${displayUrl} (${duration}ms)`, {
               status: response.status,
               statusText: response.statusText,
               duration,
-              url
+              url: displayUrl
             });
           }
         }
@@ -76,11 +89,11 @@ class SystemLogger {
       } catch (error) {
         const duration = Date.now() - startTime;
         const msg = error instanceof Error ? error.message : 'Network error';
-        // Always log errors, even for health checks
-        logFn('error', 'network', `✗ ${method} ${url} failed: ${msg} (${duration}ms)`, {
+        // Always log errors, even for health checks (but still truncate URL)
+        logFn('error', 'network', `✗ ${method} ${displayUrl} failed: ${msg} (${duration}ms)`, {
           error: msg,
           duration,
-          url
+          url: displayUrl
         });
         throw error;
       }

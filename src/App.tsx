@@ -149,7 +149,7 @@ function App() {
     if (!file) return;
 
     setIsProcessing(true);
-    setLogs([]);
+    // Don't clear logs - keep preprocessing logs visible
 
     try {
       let result: OcrResponse;
