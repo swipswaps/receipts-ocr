@@ -5,6 +5,7 @@ import * as TesseractModule from 'tesseract.js';
 import * as exifr from 'exifr';
 import heic2any from 'heic2any';
 import type { OcrResponse, Receipt, ParsedReceipt } from '../types';
+import { dockerHealthService } from './dockerHealthService';
 
 const API_BASE = 'http://localhost:5001';
 
@@ -213,42 +214,51 @@ export const processWithDocker = async (
 
   onLog?.('Waiting for PaddleOCR response (this may take 60-90s for large images)...', 'info');
 
-  const response = await fetch(`${API_BASE}/ocr`, {
-    method: 'POST',
-    body: formData
-  });
+  // Pause health checks during OCR - backend is busy processing, not dead
+  // This prevents false-negative health checks from switching to Tesseract fallback
+  dockerHealthService.pauseMonitoring();
 
-  if (!response.ok) {
-    onLog?.(`Backend error: ${response.status}`, 'error');
-    throw new Error(`Backend error: ${response.status}`);
+  try {
+    const response = await fetch(`${API_BASE}/ocr`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      onLog?.(`Backend error: ${response.status}`, 'error');
+      throw new Error(`Backend error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Log detailed response info
+    const blockCount = data.blocks?.length || 0;
+    const tableRows = data.table_rows?.length || 0;
+    const columns = data.column_count || 1;
+    onLog?.(`OCR complete: ${blockCount} text blocks, ${columns} columns, ${tableRows} table rows`, 'success');
+
+    // Use backend's layout-aware raw_text (groups text blocks spatially)
+    // This preserves multi-line items like addresses and catalog entries
+    const raw_text = data.raw_text || data.blocks?.map((b: { text: string }) => b.text).join('\n') || '';
+    const lines = raw_text.split('\n').filter((l: string) => l.trim());
+
+    // Parse the receipt text
+    const parsed = parseReceiptText(lines);
+
+    return {
+      success: true,
+      filename: file.name,
+      blocks: data.blocks || [],
+      raw_text,
+      parsed,
+      table_rows: data.table_rows,
+      column_count: data.column_count,
+      row_count: data.row_count
+    };
+  } finally {
+    // Always resume health monitoring, even if OCR fails
+    dockerHealthService.resumeMonitoring();
   }
-
-  const data = await response.json();
-
-  // Log detailed response info
-  const blockCount = data.blocks?.length || 0;
-  const tableRows = data.table_rows?.length || 0;
-  const columns = data.column_count || 1;
-  onLog?.(`OCR complete: ${blockCount} text blocks, ${columns} columns, ${tableRows} table rows`, 'success');
-
-  // Use backend's layout-aware raw_text (groups text blocks spatially)
-  // This preserves multi-line items like addresses and catalog entries
-  const raw_text = data.raw_text || data.blocks?.map((b: { text: string }) => b.text).join('\n') || '';
-  const lines = raw_text.split('\n').filter((l: string) => l.trim());
-
-  // Parse the receipt text
-  const parsed = parseReceiptText(lines);
-
-  return {
-    success: true,
-    filename: file.name,
-    blocks: data.blocks || [],
-    raw_text,
-    parsed,
-    table_rows: data.table_rows,
-    column_count: data.column_count,
-    row_count: data.row_count
-  };
 };
 
 /**

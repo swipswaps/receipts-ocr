@@ -28,6 +28,9 @@ class DockerHealthService {
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY_MS = 2000;
 
+  // Pause health checks during active OCR to prevent false negatives
+  private isPaused = false;
+
   /**
    * Start monitoring Docker health
    */
@@ -36,6 +39,10 @@ class DockerHealthService {
 
     if (!this.checkInterval) {
       this.checkInterval = setInterval(async () => {
+        // Skip health checks while OCR is processing (backend is busy, not dead)
+        if (this.isPaused) {
+          return;
+        }
         const status = await this.checkHealth();
         onStatusChange?.(status);
       }, this.CHECK_INTERVAL_MS);
@@ -50,6 +57,21 @@ class DockerHealthService {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
+  }
+
+  /**
+   * Pause health checks during active OCR processing
+   * Prevents false negatives when backend is busy processing large images
+   */
+  pauseMonitoring(): void {
+    this.isPaused = true;
+  }
+
+  /**
+   * Resume health checks after OCR processing completes
+   */
+  resumeMonitoring(): void {
+    this.isPaused = false;
   }
 
   /**

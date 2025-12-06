@@ -3,14 +3,15 @@
   "repository": "https://github.com/swipswaps/receipts-ocr",
   "last_updated": "2025-12-06",
   "summary": {
-    "total_issues": 25,
-    "fixed": 23,
+    "total_issues": 26,
+    "fixed": 24,
     "known_limitations": 2,
     "chat_logs_reviewed": [
       "/home/owner/Documents/Docker-OCR-2/chatLog.txt",
       "/home/owner/Documents/Docker-OCR-2/chatLog2.txt",
       "/home/owner/Documents/Docker-OCR-2/chatLog3.txt",
-      "/home/owner/Documents/Docker-OCR-2/chatLog5.txt"
+      "/home/owner/Documents/Docker-OCR-2/chatLog5.txt",
+      "/home/owner/Documents/Docker-OCR-2/chatLog6.txt"
     ]
   },
   "issues": [
@@ -361,6 +362,20 @@
         "action": "Added TableRow interface and table_rows/column_count/row_count to OcrResponse type, passed through in processWithDocker()"
       },
       "verified_by": "typescript"
+    },
+    {
+      "id": 26,
+      "category": "frontend",
+      "title": "Health Check Fallback During Active OCR",
+      "status": "FIXED",
+      "severity": "critical",
+      "symptom": "App switches to Tesseract.js fallback during OCR processing even though backend is working. Health checks timeout (3s) because backend is busy processing OCR (60-90s).",
+      "root_cause": "dockerHealthService runs health checks every 10s with 3s timeout. During long OCR operations, the backend is busy processing and can't respond to /health in 3s. After 3 failures, it marks backend as unavailable and triggers Tesseract fallback - interrupting the active OCR.",
+      "files": ["src/services/dockerHealthService.ts", "src/services/ocrService.ts"],
+      "fix": {
+        "action": "Added pauseMonitoring()/resumeMonitoring() to dockerHealthService. processWithDocker() calls pauseMonitoring() before OCR and resumeMonitoring() in finally block after OCR completes."
+      },
+      "verified_by": "manual"
     }
   ],
   "verification_methods": {
