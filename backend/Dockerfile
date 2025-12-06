@@ -3,7 +3,7 @@ FROM python:3.9-slim
 
 # System dependencies for OpenCV and PaddleOCR
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -24,7 +24,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download PaddleOCR models
-RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(lang='en', use_gpu=False, show_log=False)"
+RUN python -c 'from paddleocr import PaddleOCR; PaddleOCR(lang="en")'
 
 # Copy application
 COPY app.py .

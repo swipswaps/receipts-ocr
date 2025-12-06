@@ -36,36 +36,47 @@ class SystemLogger {
     const originalFetch = window.fetch;
     const logFn = this.log.bind(this);
 
+    // Skip logging for these endpoints (too noisy)
+    const SKIP_LOGGING_PATTERNS = ['/health'];
+
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       const method = init?.method || 'GET';
       const startTime = Date.now();
 
-      logFn('debug', 'network', `→ ${method} ${url}`, { method, url });
+      // Skip logging for health checks (too noisy)
+      const shouldSkipLog = SKIP_LOGGING_PATTERNS.some(pattern => url.includes(pattern));
+
+      if (!shouldSkipLog) {
+        logFn('debug', 'network', `→ ${method} ${url}`, { method, url });
+      }
 
       try {
         const response = await originalFetch.call(window, input, init);
         const duration = Date.now() - startTime;
 
-        if (response.ok) {
-          logFn('info', 'network', `← ${response.status} ${url} (${duration}ms)`, {
-            status: response.status,
-            duration,
-            url
-          });
-        } else {
-          logFn('warn', 'network', `← ${response.status} ${response.statusText} ${url} (${duration}ms)`, {
-            status: response.status,
-            statusText: response.statusText,
-            duration,
-            url
-          });
+        if (!shouldSkipLog) {
+          if (response.ok) {
+            logFn('info', 'network', `← ${response.status} ${url} (${duration}ms)`, {
+              status: response.status,
+              duration,
+              url
+            });
+          } else {
+            logFn('warn', 'network', `← ${response.status} ${response.statusText} ${url} (${duration}ms)`, {
+              status: response.status,
+              statusText: response.statusText,
+              duration,
+              url
+            });
+          }
         }
 
         return response;
       } catch (error) {
         const duration = Date.now() - startTime;
         const msg = error instanceof Error ? error.message : 'Network error';
+        // Always log errors, even for health checks
         logFn('error', 'network', `✗ ${method} ${url} failed: ${msg} (${duration}ms)`, {
           error: msg,
           duration,

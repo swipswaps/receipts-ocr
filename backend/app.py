@@ -119,183 +119,184 @@ def deskew_image(gray: np.ndarray, max_angle: float = 10.0) -> np.ndarray:
 
 
 # -----------------------------------------------------------------------------
-# Layout Analysis - Column and Row Detection
+# Layout Analysis - Column-First Algorithm (from Docker-OCR-2)
+# -----------------------------------------------------------------------------
+# This algorithm properly handles multi-column layouts by:
+# 1. Detecting column boundaries using X-gap analysis
+# 2. Assigning blocks to columns
+# 3. Clustering blocks within columns into "cards" using Y-gap analysis
+# 4. Building table where row N = Nth card from each column
 # -----------------------------------------------------------------------------
 
 
-def analyze_layout(blocks: list[dict[str, Any]]) -> dict[str, Any]:
+def analyze_layout_column_first(
+    blocks: list[dict[str, Any]],
+) -> dict[str, Any]:
     """
-    Analyze OCR blocks to detect columns, rows, and spacing.
+    Column-first layout analysis for multi-column documents.
+
+    This algorithm:
+    1. Detects column boundaries using X-gap analysis
+    2. Assigns each block to its column
+    3. Clusters blocks within each column into "cards" using Y-gaps
+    4. Builds table where row N = Nth card from each column
 
     Args:
         blocks: List of OCR blocks with _x, _y, _w, _h coordinates
 
     Returns:
-        Layout analysis with columns, rows, and grouped text
+        Layout analysis with table_rows, column_count, row_count, raw_text
     """
     if not blocks:
-        return {"columns": [], "rows": [], "grouped_text": []}
+        return {
+            "table_rows": [],
+            "column_count": 0,
+            "row_count": 0,
+            "raw_text": "",
+            "blocks": [],
+        }
 
-    # Sort blocks by Y coordinate (top to bottom)
-    sorted_blocks = sorted(blocks, key=lambda b: b["_y"])
+    # Calculate median dimensions for thresholds
+    heights = [b["_h"] for b in blocks]
+    widths = [b["_w"] for b in blocks]
+    median_height = sorted(heights)[len(heights) // 2] if heights else 30
+    median_width = sorted(widths)[len(widths) // 2] if widths else 100
 
-    # Detect rows by grouping blocks with similar Y coordinates
-    rows = detect_rows(sorted_blocks)
+    # STEP 1: Detect column boundaries using X-gap analysis
+    all_x_starts = sorted({int(b["_x"]) for b in blocks})
 
-    # Detect columns by analyzing X coordinates within rows
-    columns = detect_columns(sorted_blocks)
+    x_gaps: list[tuple[int, int]] = []
+    for i in range(1, len(all_x_starts)):
+        gap = all_x_starts[i] - all_x_starts[i - 1]
+        x_gaps.append((gap, all_x_starts[i]))
 
-    # Group text by detected structure
-    grouped_text = group_by_layout(rows, columns)
+    col_boundaries = [all_x_starts[0]] if all_x_starts else [0]
+
+    if x_gaps:
+        gap_values = sorted([g[0] for g in x_gaps], reverse=True)
+        # Large gaps separate columns - use adaptive threshold
+        gap_threshold = max(median_width * 1.5, 300)
+
+        logger.debug(f"X gaps (largest 5): {gap_values[:5]}, threshold: {gap_threshold:.0f}px")
+
+        for gap_size, x_pos in x_gaps:
+            if gap_size >= gap_threshold:
+                col_boundaries.append(x_pos)
+        col_boundaries.sort()
+
+    num_cols = len(col_boundaries)
+    logger.debug(f"Column boundaries ({num_cols}): {col_boundaries}")
+
+    # STEP 2: Assign each block to a column
+    columns: dict[int, list[dict[str, Any]]] = {i: [] for i in range(num_cols)}
+    for block in blocks:
+        block_x = block["_x"]
+        col_idx = 0
+        for i, col_x in enumerate(col_boundaries):
+            if block_x >= col_x - 50:  # Allow some tolerance
+                col_idx = i
+        columns[col_idx].append(block)
+
+    logger.debug(f"Blocks per column: {[len(columns[i]) for i in range(num_cols)]}")
+
+    # STEP 3: Cluster blocks within each column into cards using Y-gaps
+    y_gap_threshold = median_height * 1.2
+
+    def cluster_column_blocks(col_blocks: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+        """Cluster text blocks within a column into separate cards."""
+        if not col_blocks:
+            return []
+
+        sorted_blocks = sorted(col_blocks, key=lambda b: b["_y"])
+        y_positions = [(b["_y"], b["_y"] + b["_h"], b) for b in sorted_blocks]
+
+        cards: list[list[dict[str, Any]]] = []
+        current_card: list[dict[str, Any]] = [y_positions[0][2]]
+        current_y_max = y_positions[0][1]
+
+        for y_min, y_max, block in y_positions[1:]:
+            gap = y_min - current_y_max
+            if gap >= y_gap_threshold:
+                # New card - significant vertical gap
+                cards.append(current_card)
+                current_card = [block]
+                current_y_max = y_max
+            else:
+                # Same card
+                current_card.append(block)
+                current_y_max = max(current_y_max, y_max)
+
+        if current_card:
+            cards.append(current_card)
+
+        return cards
+
+    column_cards: dict[int, list[list[dict[str, Any]]]] = {}
+    max_cards_per_col = 0
+    for col_idx in range(num_cols):
+        cards = cluster_column_blocks(columns[col_idx])
+        column_cards[col_idx] = cards
+        max_cards_per_col = max(max_cards_per_col, len(cards))
+
+    logger.debug(f"Cards per column: {[len(column_cards[i]) for i in range(num_cols)]}")
+
+    num_rows = max_cards_per_col
+    logger.info(f"Layout: {num_cols} columns x {num_rows} rows")
+
+    # STEP 4: Build table - each row is the Nth card from each column
+    table_rows: list[dict[str, Any]] = []
+    result_blocks: list[dict[str, Any]] = []
+    extracted_lines: list[str] = []
+
+    for row_idx in range(num_rows):
+        row_cells: list[str] = [""] * num_cols
+        row_confidences: list[float] = [0.0] * num_cols
+
+        for col_idx in range(num_cols):
+            cards = column_cards[col_idx]
+            if row_idx < len(cards):
+                card_blocks = cards[row_idx]
+                # Sort blocks within card by Y then X for reading order
+                sorted_card = sorted(card_blocks, key=lambda b: (b["_y"], b["_x"]))
+                raw_card_text = " ".join([b["text"] for b in sorted_card])
+                # Apply OCR text cleaning
+                card_text = clean_ocr_text(raw_card_text)
+                card_conf = max([b["confidence"] for b in sorted_card]) if sorted_card else 0.0
+                row_cells[col_idx] = card_text
+                row_confidences[col_idx] = card_conf
+
+        table_rows.append({"row": row_idx, "cells": row_cells, "confidences": row_confidences})
+
+        # Add to result blocks with row/col info
+        for col_idx, cell_text in enumerate(row_cells):
+            if cell_text:
+                result_blocks.append(
+                    {
+                        "text": cell_text,
+                        "confidence": row_confidences[col_idx],
+                        "row": row_idx,
+                        "col": col_idx,
+                        "_x": 0,
+                        "_y": row_idx * 50,
+                        "_w": 200,
+                        "_h": 40,
+                    }
+                )
+
+        # Build text line (tab-separated for multi-column)
+        row_text = "\t".join(row_cells)
+        if row_text.strip():
+            extracted_lines.append(row_text)
+
+    raw_text = "\n".join(extracted_lines)
 
     return {
-        "columns": columns,
-        "rows": rows,
-        "grouped_text": grouped_text,
-        "column_count": len(columns),
-        "row_count": len(rows),
+        "table_rows": table_rows,
+        "column_count": num_cols,
+        "row_count": num_rows,
+        "raw_text": raw_text,
+        "blocks": result_blocks,
     }
-
-
-def detect_rows(
-    blocks: list[dict[str, Any]], y_tolerance: float = 0.5
-) -> list[list[dict[str, Any]]]:
-    """
-    Group blocks into rows based on Y-coordinate proximity.
-
-    Args:
-        blocks: Sorted list of OCR blocks
-        y_tolerance: Tolerance for Y-coordinate grouping (fraction of avg height)
-
-    Returns:
-        List of rows, each containing blocks on that row
-    """
-    if not blocks:
-        return []
-
-    # Calculate average block height for tolerance
-    avg_height = sum(b["_h"] for b in blocks) / len(blocks)
-    tolerance = avg_height * y_tolerance
-
-    rows: list[list[dict[str, Any]]] = []
-    current_row: list[dict[str, Any]] = [blocks[0]]
-    current_y = blocks[0]["_y"]
-
-    for block in blocks[1:]:
-        # Check if block is on same row (within tolerance)
-        if abs(block["_y"] - current_y) <= tolerance:
-            current_row.append(block)
-        else:
-            # Start new row
-            rows.append(sorted(current_row, key=lambda b: b["_x"]))  # Sort row by X
-            current_row = [block]
-            current_y = block["_y"]
-
-    # Don't forget last row
-    if current_row:
-        rows.append(sorted(current_row, key=lambda b: b["_x"]))
-
-    return rows
-
-
-def detect_columns(
-    blocks: list[dict[str, Any]], x_gap_threshold: float = 50.0
-) -> list[dict[str, Any]]:
-    """
-    Detect column boundaries based on X-coordinate clustering.
-
-    Args:
-        blocks: List of OCR blocks
-        x_gap_threshold: Minimum gap between columns in pixels
-
-    Returns:
-        List of column definitions with boundaries
-    """
-    if not blocks:
-        return []
-
-    # Get all X positions
-    x_positions = [(b["_x"], b["_x"] + b["_w"]) for b in blocks]
-    x_positions.sort(key=lambda p: p[0])
-
-    # Find gaps that indicate column boundaries
-    columns: list[dict[str, Any]] = []
-    current_start = x_positions[0][0]
-    current_end = x_positions[0][1]
-
-    for start, end in x_positions[1:]:
-        if start - current_end > x_gap_threshold:
-            # Found a gap - save current column
-            columns.append(
-                {
-                    "x_start": current_start,
-                    "x_end": current_end,
-                    "width": current_end - current_start,
-                }
-            )
-            current_start = start
-            current_end = end
-        else:
-            # Extend current column
-            current_end = max(current_end, end)
-
-    # Don't forget last column
-    columns.append(
-        {
-            "x_start": current_start,
-            "x_end": current_end,
-            "width": current_end - current_start,
-        }
-    )
-
-    return columns
-
-
-def group_by_layout(
-    rows: list[list[dict[str, Any]]], columns: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
-    """
-    Group text by layout structure for better output formatting.
-
-    Args:
-        rows: Detected rows from detect_rows()
-        columns: Detected columns from detect_columns()
-
-    Returns:
-        List of grouped text entries with row/column info
-    """
-    grouped: list[dict[str, Any]] = []
-
-    for row_idx, row in enumerate(rows):
-        row_text_parts: list[str] = []
-
-        for block in row:
-            # Determine which column this block belongs to
-            block_center = block["_x"] + block["_w"] / 2
-            for i, col in enumerate(columns):
-                if col["x_start"] <= block_center <= col["x_end"]:
-                    _ = i  # Column index (unused but kept for potential future use)
-                    break
-
-            row_text_parts.append(block["text"])
-
-        # Join row text with proper spacing
-        if len(columns) > 1 and len(row_text_parts) > 1:
-            # Multi-column: tab-separate
-            row_text = "\t".join(row_text_parts)
-        else:
-            # Single column: space-separate
-            row_text = " ".join(row_text_parts)
-
-        grouped.append(
-            {
-                "row": row_idx,
-                "text": row_text,
-                "block_count": len(row),
-            }
-        )
-
-    return grouped
 
 
 # Configuration
@@ -480,20 +481,16 @@ def init_database() -> bool:
 def init_ocr_engine() -> PaddleOCR | None:
     """Initialize PaddleOCR with CPU-optimized settings."""
     try:
+        # New PaddleOCR API (v3+)
         engine = PaddleOCR(
-            use_angle_cls=False,  # Disabled - rotation handled elsewhere
             lang="en",
-            use_gpu=False,
-            show_log=False,
-            enable_mkldnn=False,  # Disable MKL-DNN for CPU compatibility
-            cpu_threads=1,
-            use_tensorrt=False,
-            use_mp=False,
-            det_limit_side_len=2560,
-            det_limit_type="max",
-            det_db_thresh=0.3,
-            det_db_box_thresh=0.5,
-            rec_batch_num=6,
+            use_doc_orientation_classify=False,  # Rotation handled elsewhere
+            use_doc_unwarping=False,
+            use_textline_orientation=False,
+            text_det_limit_side_len=2560,
+            text_det_limit_type="max",
+            text_det_thresh=0.3,
+            text_det_box_thresh=0.5,
         )
         logger.info("PaddleOCR initialized successfully")
         return engine
@@ -603,42 +600,52 @@ def ocr_endpoint() -> tuple[Response, int] | Response:
         preprocessed = preprocess_for_ocr(img)
         logger.info("Applied OpenCV preprocessing (denoise, CLAHE, deskew)")
 
-        # Run OCR on preprocessed image
-        result = ocr.ocr(preprocessed, cls=False)
+        # Run OCR on preprocessed image (new PaddleOCR v3+ API)
+        result = ocr.predict(preprocessed)
 
-        if not result or not result[0]:
+        if not result or len(result) == 0:
             return jsonify({"error": "No text detected"}), 200
+
+        # New API returns list of dicts with 'rec_texts', 'rec_scores', 'dt_polys'
+        ocr_result = result[0]
+        rec_texts = ocr_result.get("rec_texts", [])
+        rec_scores = ocr_result.get("rec_scores", [])
+        dt_polys = ocr_result.get("dt_polys", [])
+
+        if not rec_texts:
+            return jsonify({"error": "No text detected"}), 200
+
+        logger.info(f"Detected {len(rec_texts)} text blocks")
 
         # Extract blocks with coordinates
         blocks = []
         raw_lines = []
 
-        for line in result[0]:
-            bbox, (text, confidence) = line
+        for i, text in enumerate(rec_texts):
+            confidence = rec_scores[i] if i < len(rec_scores) else 0.0
+            bbox = dt_polys[i] if i < len(dt_polys) else [[0, 0], [0, 0], [0, 0], [0, 0]]
+
             x_coords = [p[0] for p in bbox]
             y_coords = [p[1] for p in bbox]
 
             blocks.append(
                 {
                     "text": text,
-                    "confidence": confidence,
-                    "_x": min(x_coords),
-                    "_y": min(y_coords),
-                    "_w": max(x_coords) - min(x_coords),
-                    "_h": max(y_coords) - min(y_coords),
+                    "confidence": float(confidence),
+                    "_x": float(min(x_coords)),
+                    "_y": float(min(y_coords)),
+                    "_w": float(max(x_coords) - min(x_coords)),
+                    "_h": float(max(y_coords) - min(y_coords)),
                 }
             )
             raw_lines.append(text)
 
         # Analyze layout - detect columns, rows, spacing
-        layout = analyze_layout(blocks)
+        layout = analyze_layout_column_first(blocks)
         logger.info(f"Layout: {layout['column_count']} columns, {layout['row_count']} rows")
 
         # Use layout-aware text reconstruction if multi-column
-        if layout["column_count"] > 1:
-            raw_text = "\n".join(g["text"] for g in layout["grouped_text"])
-        else:
-            raw_text = "\n".join(raw_lines)
+        raw_text = layout["raw_text"] if layout["column_count"] > 1 else "\n".join(raw_lines)
 
         # Parse receipt structure
         parsed = parse_receipt_text(blocks)

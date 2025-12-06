@@ -2,7 +2,7 @@
  * Docker Status Component
  * Shows connection status and setup instructions for the backend container
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { dockerHealthService } from '../services/dockerHealthService';
 import type { DockerHealthStatus } from '../services/dockerHealthService';
 import { systemLogger } from '../services/systemLogger';
@@ -17,22 +17,37 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
   const [expanded, setExpanded] = useState(false);
   const [checking, setChecking] = useState(false);
 
+  // Use refs to prevent re-registering monitoring on every render
+  const onStatusChangeRef = useRef(onStatusChange);
+  const hasStartedRef = useRef(false);
+
+  // Keep ref updated
   useEffect(() => {
+    onStatusChangeRef.current = onStatusChange;
+  }, [onStatusChange]);
+
+  // Stable callback that uses ref
+  const handleStatusChange = useCallback((newStatus: DockerHealthStatus) => {
+    setStatus(newStatus);
+    onStatusChangeRef.current?.(newStatus.isHealthy);
+  }, []);
+
+  useEffect(() => {
+    // Only start monitoring once
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+
     systemLogger.info('docker', '🐳 Starting Docker health monitoring...');
 
     dockerHealthService.startMonitoring((newStatus) => {
-      setStatus(newStatus);
-      onStatusChange?.(newStatus.isHealthy);
+      handleStatusChange(newStatus);
 
-      if (newStatus.isHealthy) {
-        systemLogger.success('docker', `✅ Docker backend healthy: ${newStatus.ocrEngine || 'PaddleOCR'}`);
-      } else {
-        systemLogger.warn('docker', `⚠️ Docker backend unavailable: ${newStatus.error || 'Connection failed'}`);
-      }
+      // Only log on status changes, not every health check
+      // The service already logs via systemLogger interceptor
     });
 
     return () => dockerHealthService.stopMonitoring();
-  }, [onStatusChange]);
+  }, [handleStatusChange]);
 
   const handleRetry = async () => {
     setChecking(true);
@@ -65,16 +80,26 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
     );
   }
 
+  // Detect if running on GitHub Pages
+  const isGitHubPages = window.location.hostname.includes('github.io');
+
   return (
     <div className="docker-status unhealthy">
       <div className="status-header" onClick={() => setExpanded(!expanded)}>
         <span className="status-icon">⚠️</span>
-        <span className="status-text">Docker Backend Unavailable</span>
+        <span className="status-text">Docker Backend Required</span>
         <span className="expand-icon">{expanded ? '▼' : '▶'}</span>
       </div>
 
       {expanded && (
         <div className="status-details">
+          {isGitHubPages && (
+            <div className="github-pages-notice">
+              <p><strong>🌐 You're viewing this on GitHub Pages</strong></p>
+              <p>This is a <em>frontend-only</em> demo. For high-accuracy PaddleOCR, you need to run the Docker backend on your local machine.</p>
+            </div>
+          )}
+
           <p className="error-message">
             <strong>Error:</strong> {status.error || 'Cannot connect to backend on port 5001'}
           </p>
@@ -86,8 +111,8 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
           )}
 
           <div className="fallback-info">
-            <p>📋 Using browser-based Tesseract.js as fallback</p>
-            <p>💡 For better results, start the Docker backend:</p>
+            <p>📋 Currently using browser-based Tesseract.js (lower accuracy)</p>
+            <p>🚀 <strong>For 10x better results</strong>, run Docker locally:</p>
           </div>
 
           <div className="setup-instructions">

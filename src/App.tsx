@@ -15,6 +15,7 @@ import {
   deleteReceipt,
   rotateImageCanvas
 } from './services/ocrService';
+import { autoCorrectRotation } from './services/angleDetectionService';
 import './App.css';
 import { DockerStatus } from './components/DockerStatus';
 import { SystemLogsPanel } from './components/SystemLogsPanel';
@@ -29,6 +30,7 @@ function App() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPreprocessing, setIsPreprocessing] = useState(false);
   const [activeTab, setActiveTab] = useState<'upload' | 'history'>('upload');
   const [backendHealth, setBackendHealth] = useState<BackendHealth>({ status: 'checking' });
   const [ocrEngine, setOcrEngine] = useState<OcrEngine>('docker');
@@ -87,21 +89,54 @@ function App() {
 
   // File handling
   const handleFileSelect = useCallback(async (selectedFile: File) => {
-    setFile(selectedFile);
+    // Clear previous state and start preprocessing
+    setFile(null); // Don't set file until preprocessing is complete
+    setPreview(null);
     setOcrResult(null);
     setLogs([]);
+    setIsPreprocessing(true);
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target?.result as string);
-
-    // Preprocess (HEIC conversion, EXIF rotation)
     addLog(`Selected: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`, 'info');
-    const processed = await preprocessImage(selectedFile, addLog);
 
-    reader.readAsDataURL(processed);
-    setFile(processed);
-  }, [addLog]);
+    try {
+      // Step 1: Preprocess (HEIC conversion, EXIF rotation)
+      const processed = await preprocessImage(selectedFile, addLog);
+
+      // Step 2: Auto-detect text orientation via Tesseract OSD (if Docker backend available)
+      let finalImageDataUrl: string;
+      const processedDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(processed);
+      });
+
+      if (backendHealth.status === 'healthy') {
+        addLog('Auto-detecting text orientation via Tesseract OSD...', 'info');
+        const rotationResult = await autoCorrectRotation(processedDataUrl, 0.3);
+        finalImageDataUrl = rotationResult.imageDataUrl;
+        if (rotationResult.corrected) {
+          addLog(`Applied ${rotationResult.angle}° rotation correction`, 'success');
+        }
+      } else {
+        finalImageDataUrl = processedDataUrl;
+      }
+
+      // Set preview
+      setPreview(finalImageDataUrl);
+
+      // Convert data URL back to File for OCR processing
+      const response = await fetch(finalImageDataUrl);
+      const blob = await response.blob();
+      const finalFile = new File([blob], processed.name, { type: blob.type });
+      setFile(finalFile);
+      addLog('Image ready for OCR', 'success');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      addLog(`Preprocessing failed: ${msg}`, 'error');
+    } finally {
+      setIsPreprocessing(false);
+    }
+  }, [addLog, backendHealth.status]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -341,10 +376,10 @@ function App() {
               <button
                 className="btn primary"
                 onClick={processReceipt}
-                disabled={!file || isProcessing}
+                disabled={!file || isProcessing || isPreprocessing}
               >
-                {isProcessing ? <RefreshCw className="spin" size={16} /> : <FileText size={16} />}
-                {isProcessing ? 'Processing...' : 'Extract Text'}
+                {isProcessing ? <RefreshCw className="spin" size={16} /> : isPreprocessing ? <RefreshCw className="spin" size={16} /> : <FileText size={16} />}
+                {isProcessing ? 'Processing...' : isPreprocessing ? 'Preparing...' : 'Extract Text'}
               </button>
 
               {ocrResult && backendHealth.status === 'healthy' && (

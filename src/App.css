@@ -1012,3 +1012,21 @@ body {
   font-size: 13px;
   margin: 8px 0;
 }
+
+.docker-status .github-pages-notice {
+  background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #60a5fa;
+}
+
+.docker-status .github-pages-notice p {
+  margin: 0 0 8px 0;
+}
+
+.docker-status .github-pages-notice p:last-child {
+  margin-bottom: 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
