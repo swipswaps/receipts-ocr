@@ -90,7 +90,7 @@ def deskew_image(gray: np.ndarray, max_angle: float = 10.0) -> np.ndarray:
     # Calculate angles of detected lines
     angles = []
     for line in lines:
-        x1, y1, x2, y2 = line[0]
+        x1, y1, x2, y2 = int(line[0][0]), int(line[0][1]), int(line[0][2]), int(line[0][3])
         if x2 - x1 != 0:  # Avoid division by zero
             angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
             # Only consider near-horizontal lines
