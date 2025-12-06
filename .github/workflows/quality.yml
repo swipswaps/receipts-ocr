@@ -37,7 +37,7 @@ jobs:
 
       - name: Check Bundle Size
         run: |
-          MAX=524288  # 512 KB
+          MAX=2621440  # 2.5 MB - includes Tesseract.js (~1.5MB) and ExcelJS
           SIZE=$(find dist -name "*.js" -exec cat {} + | wc -c)
           echo "Total JS bundle size: $SIZE bytes (max: $MAX)"
           if [ "$SIZE" -gt "$MAX" ]; then

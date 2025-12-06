@@ -91,7 +91,7 @@ def deskew_image(gray: np.ndarray, max_angle: float = 10.0) -> np.ndarray:
     # HoughLinesP returns numpy array of shape (N, 1, 4) containing [x1, y1, x2, y2]
     angles = []
     for line in lines:
-        x1, y1, x2, y2 = line[0]  # type: ignore[misc]
+        x1, y1, x2, y2 = line[0]  # type: ignore[index]
         if x2 - x1 != 0:  # Avoid division by zero
             angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
             # Only consider near-horizontal lines
