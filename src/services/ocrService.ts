@@ -6,6 +6,7 @@ import * as exifr from 'exifr';
 import heic2any from 'heic2any';
 import type { OcrResponse, Receipt, ParsedReceipt } from '../types';
 import { dockerHealthService } from './dockerHealthService';
+import { backendLogService } from './backendLogService';
 
 const API_BASE = 'http://localhost:5001';
 
@@ -212,11 +213,22 @@ export const processWithDocker = async (
   const formData = new FormData();
   formData.append('file', processedFile);
 
-  onLog?.('Waiting for PaddleOCR response (this may take 60-90s for large images)...', 'info');
+  onLog?.('Waiting for PaddleOCR response...', 'info');
 
   // Pause health checks during OCR - backend is busy processing, not dead
   // This prevents false-negative health checks from switching to Tesseract fallback
   dockerHealthService.pauseMonitoring();
+
+  // Start streaming backend logs to display real-time progress (Issue #27)
+  // Subscribe to backend logs and forward them to the UI
+  const unsubscribe = backendLogService.subscribe((log) => {
+    // Map backend log levels to UI log levels
+    const level = log.level === 'ERROR' ? 'error'
+      : log.level === 'WARNING' ? 'warn'
+      : 'info';
+    onLog?.(`[Backend] ${log.message}`, level);
+  });
+  backendLogService.startStreaming();
 
   try {
     const response = await fetch(`${API_BASE}/ocr`, {
@@ -256,6 +268,9 @@ export const processWithDocker = async (
       row_count: data.row_count
     };
   } finally {
+    // Stop streaming backend logs
+    backendLogService.stopStreaming();
+    unsubscribe();
     // Always resume health monitoring, even if OCR fails
     dockerHealthService.resumeMonitoring();
   }

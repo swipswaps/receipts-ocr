@@ -8,13 +8,17 @@ Based on patterns from Docker-OCR-2 llm_notes.
 from __future__ import annotations
 
 import base64
+import json as json_module
 import logging
 import os
 import re
 import subprocess
 import sys
 import tempfile
-from typing import TYPE_CHECKING, Any
+import time as time_module
+from collections import deque
+from threading import Lock
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import cv2
 import numpy as np
@@ -23,6 +27,15 @@ from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 from paddleocr import PaddleOCR
 from psycopg2.extras import RealDictCursor
+
+
+class LogEntry(TypedDict):
+    """Type for log buffer entries."""
+
+    timestamp: float
+    level: str
+    message: str
+
 
 if TYPE_CHECKING:
     from psycopg2.extensions import connection
@@ -327,6 +340,39 @@ logger.addHandler(handler)
 logger.propagate = False
 
 # -----------------------------------------------------------------------------
+# Log Buffer for SSE Streaming (Issue #27)
+# Stores recent logs to stream to frontend in real-time
+# -----------------------------------------------------------------------------
+
+log_buffer: deque[LogEntry] = deque(maxlen=100)
+log_buffer_lock = Lock()
+
+
+class LogBufferHandler(logging.Handler):
+    """Custom handler that writes logs to a buffer for SSE streaming."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            msg = self.format(record)
+            with log_buffer_lock:
+                log_buffer.append(
+                    {
+                        "timestamp": time_module.time(),
+                        "level": record.levelname,
+                        "message": msg,
+                    }
+                )
+        except Exception:
+            self.handleError(record)
+
+
+# Add buffer handler to capture logs for streaming
+buffer_handler = LogBufferHandler()
+buffer_handler.setLevel(logging.INFO)
+buffer_handler.setFormatter(logging.Formatter("[%(levelname)7s] %(message)s"))
+logger.addHandler(buffer_handler)
+
+# -----------------------------------------------------------------------------
 # Flask Application Setup
 # -----------------------------------------------------------------------------
 app = Flask(__name__)
@@ -573,6 +619,52 @@ def health() -> Response:
     )
 
 
+@app.route("/logs", methods=["GET"])
+def get_logs() -> Response:
+    """
+    Get recent backend logs for frontend display.
+
+    Returns logs since 'since' timestamp (query param).
+    This enables the frontend to poll for new logs during OCR processing.
+    """
+    since = request.args.get("since", 0.0, type=float)
+
+    with log_buffer_lock:
+        logs = [log for log in log_buffer if log["timestamp"] > since]
+
+    return jsonify({"logs": logs, "timestamp": time_module.time()})
+
+
+@app.route("/logs/stream", methods=["GET"])
+def stream_logs() -> Response:
+    """
+    Server-Sent Events endpoint for real-time log streaming.
+
+    Frontend connects to this endpoint and receives logs as they happen.
+    """
+
+    def generate() -> Any:
+        last_sent = time_module.time()
+        while True:
+            with log_buffer_lock:
+                new_logs = [log for log in log_buffer if log["timestamp"] > last_sent]
+            for log in new_logs:
+                data = json_module.dumps(log)
+                yield f"data: {data}\n\n"
+                last_sent = log["timestamp"]
+            time_module.sleep(0.5)  # Poll every 500ms
+
+    return Response(
+        generate(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
+
+
 @app.route("/ocr", methods=["POST"])
 def ocr_endpoint() -> tuple[Response, int] | Response:
     """Process receipt image and return OCR results."""
@@ -595,14 +687,29 @@ def ocr_endpoint() -> tuple[Response, int] | Response:
         if img is None:
             return jsonify({"error": "Invalid image file"}), 400
 
-        logger.info(f"Processing receipt: {file.filename} ({len(file_bytes)} bytes)")
+        import time
+
+        start_time = time.time()
+
+        file_size_kb = len(file_bytes) / 1024
+        logger.info(f"Processing receipt: {file.filename} ({file_size_kb:.1f} KB)")
 
         # Preprocess image with OpenCV for better OCR accuracy
+        preprocess_start = time.time()
         preprocessed = preprocess_for_ocr(img)
-        logger.info("Applied OpenCV preprocessing (denoise, CLAHE, deskew)")
+        preprocess_time = time.time() - preprocess_start
+        logger.info(
+            f"OpenCV preprocessing complete ({preprocess_time:.1f}s): denoise, CLAHE, deskew"
+        )
 
         # Run OCR on preprocessed image (new PaddleOCR v3+ API)
+        # This is the slowest step - typically 30-90 seconds for large images
+        img_h, img_w = preprocessed.shape[:2] if len(preprocessed.shape) >= 2 else (0, 0)
+        logger.info(f"Starting PaddleOCR text detection ({img_w}x{img_h} pixels)...")
+        ocr_start = time.time()
         result = ocr.predict(preprocessed)
+        ocr_time = time.time() - ocr_start
+        logger.info(f"PaddleOCR inference complete ({ocr_time:.1f}s)")
 
         if not result or len(result) == 0:
             return jsonify({"error": "No text detected"}), 200
@@ -616,7 +723,8 @@ def ocr_endpoint() -> tuple[Response, int] | Response:
         if not rec_texts:
             return jsonify({"error": "No text detected"}), 200
 
-        logger.info(f"Detected {len(rec_texts)} text blocks")
+        total_time = time.time() - start_time
+        logger.info(f"Detected {len(rec_texts)} text blocks (total: {total_time:.1f}s)")
 
         # Extract blocks with coordinates
         blocks = []

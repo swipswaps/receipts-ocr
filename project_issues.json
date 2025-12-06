@@ -3,15 +3,17 @@
   "repository": "https://github.com/swipswaps/receipts-ocr",
   "last_updated": "2025-12-06",
   "summary": {
-    "total_issues": 26,
+    "total_issues": 27,
     "fixed": 24,
+    "open": 1,
     "known_limitations": 2,
     "chat_logs_reviewed": [
       "/home/owner/Documents/Docker-OCR-2/chatLog.txt",
       "/home/owner/Documents/Docker-OCR-2/chatLog2.txt",
       "/home/owner/Documents/Docker-OCR-2/chatLog3.txt",
       "/home/owner/Documents/Docker-OCR-2/chatLog5.txt",
-      "/home/owner/Documents/Docker-OCR-2/chatLog6.txt"
+      "/home/owner/Documents/Docker-OCR-2/chatLog6.txt",
+      "/home/owner/Documents/Docker-OCR-2/chatLog7.txt"
     ]
   },
   "issues": [
@@ -376,6 +378,23 @@
         "action": "Added pauseMonitoring()/resumeMonitoring() to dockerHealthService. processWithDocker() calls pauseMonitoring() before OCR and resumeMonitoring() in finally block after OCR completes."
       },
       "verified_by": "manual"
+    },
+    {
+      "id": 27,
+      "category": "frontend",
+      "title": "Backend Logs Not Streamed to Frontend During OCR",
+      "status": "OPEN",
+      "severity": "high",
+      "symptom": "During OCR processing (60-90 seconds), the frontend shows no progress. User sees 'Sending to PaddleOCR backend...' then nothing until completion. Docker backend logs show activity (Processing receipt, OpenCV preprocessing, PaddleOCR inference, Detected X blocks) but these are not displayed to the user.",
+      "root_cause": "Backend logs are written to Docker stdout/stderr (visible via 'docker logs') but there is no mechanism to stream these to the frontend in real-time. The fetch() API doesn't support streaming progress from synchronous endpoints.",
+      "files": ["backend/app.py", "src/services/ocrService.ts"],
+      "proposed_fix": {
+        "option_1": "Server-Sent Events (SSE): Add /ocr-progress endpoint that streams backend logs to frontend during OCR",
+        "option_2": "WebSocket: Establish WebSocket connection to push logs in real-time",
+        "option_3": "Polling: Frontend polls /logs endpoint every few seconds during OCR"
+      },
+      "anti_pattern": "Do NOT use pseudo-progress (animated spinners with time estimates). Display REAL backend logs verbatim.",
+      "verified_by": "pending"
     }
   ],
   "verification_methods": {
