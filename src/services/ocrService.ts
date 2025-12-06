@@ -211,20 +211,29 @@ export const processWithDocker = async (
   const formData = new FormData();
   formData.append('file', processedFile);
 
+  onLog?.('Waiting for PaddleOCR response (this may take 60-90s for large images)...', 'info');
+
   const response = await fetch(`${API_BASE}/ocr`, {
     method: 'POST',
     body: formData
   });
 
   if (!response.ok) {
+    onLog?.(`Backend error: ${response.status}`, 'error');
     throw new Error(`Backend error: ${response.status}`);
   }
 
   const data = await response.json();
-  onLog?.(`OCR complete: ${data.blocks?.length || 0} text blocks detected`, 'success');
 
-  // Extract raw text from blocks
-  const raw_text = data.text || data.blocks?.map((b: { text: string }) => b.text).join('\n') || '';
+  // Log detailed response info
+  const blockCount = data.blocks?.length || 0;
+  const tableRows = data.table_rows?.length || 0;
+  const columns = data.column_count || 1;
+  onLog?.(`OCR complete: ${blockCount} text blocks, ${columns} columns, ${tableRows} table rows`, 'success');
+
+  // Use backend's layout-aware raw_text (groups text blocks spatially)
+  // This preserves multi-line items like addresses and catalog entries
+  const raw_text = data.raw_text || data.blocks?.map((b: { text: string }) => b.text).join('\n') || '';
   const lines = raw_text.split('\n').filter((l: string) => l.trim());
 
   // Parse the receipt text
@@ -235,7 +244,10 @@ export const processWithDocker = async (
     filename: file.name,
     blocks: data.blocks || [],
     raw_text,
-    parsed
+    parsed,
+    table_rows: data.table_rows,
+    column_count: data.column_count,
+    row_count: data.row_count
   };
 };
 

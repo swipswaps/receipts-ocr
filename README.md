@@ -1,151 +1,184 @@
 # Receipts OCR
 
-A full-stack receipt OCR application with PaddleOCR backend and React TypeScript frontend.
+A production-ready receipt OCR application featuring PaddleOCR backend with column-first layout analysis, React TypeScript frontend, and comprehensive logging.
 
-## Project History
+## 📍 Where We Are (December 2025)
+
+| Metric | Status |
+|--------|--------|
+| **Quality Gates** | ✅ 11 pre-commit hooks pass |
+| **CI/CD** | ✅ GitHub Actions deploy to Pages |
+| **Issues Tracked** | 25 documented, 23 fixed |
+| **Test Coverage** | Playwright E2E + Selenium tests |
+
+### Live Demo
+- **GitHub Pages**: https://swipswaps.github.io/receipts-ocr/ (frontend-only, Tesseract.js fallback)
+- **Full Features**: Run locally with Docker for PaddleOCR backend
+
+### Core Features
+- **PaddleOCR v3+ Backend** - High-accuracy OCR with column-first layout analysis
+- **Smart Block Grouping** - Groups text spatially into addresses, catalog items, tables
+- **Text Orientation Detection** - Tesseract OSD auto-corrects rotated images
+- **HEIC/EXIF Support** - Automatic conversion and rotation handling
+- **5 Export Formats** - Text, JSON, CSV, XLSX, SQL
+- **Real-time System Logs** - Network requests, OCR progress, errors
+- **Self-healing Docker Status** - Auto-fallback to Tesseract.js when backend unavailable
+
+---
+
+## 🛤️ How We Got Here
 
 This project was extracted from [Docker-OCR-2](https://github.com/swipswaps/Docker-OCR-2) as a standalone repository. During restoration from GitHub, various fixes that had been developed locally were lost and needed to be re-applied from chat logs.
 
-### Current Status (December 2024)
+### The Journey (25 Issues Resolved)
 
-✅ **All 11 quality gates pass**
-✅ **All 10 Playwright tests pass**
-✅ **Full feature parity with Docker-OCR-2**
+The development process involved extensive debugging sessions documented in chat logs (`chatLog.txt` through `chatLog5.txt`). Key challenges and solutions:
 
-### Features
-- **PaddleOCR Backend** - High-accuracy OCR using PaddleOCR v2.9.1 with PostgreSQL storage
-- **Text-based Rotation Detection** - Tesseract OSD for automatic orientation correction
-- **HEIC/EXIF Support** - Automatic HEIC conversion and EXIF rotation handling
-- **Output Tabs** - Export to Text, JSON, CSV, XLSX, SQL formats
-- **Manual Rotation** - Rotate images CCW/CW before OCR
-- **React TypeScript Frontend** - Modern UI with Vite, strict TypeScript, and ESLint
-- **Receipt-specific OCR Cleaning** - Dictionary and regex-based corrections for common OCR errors
+#### Backend Issues (PaddleOCR)
+| Issue | Symptom | Root Cause | Fix |
+|-------|---------|------------|-----|
+| **PaddleOCR v3+ API Change** | 503 error, "not_initialized" | Old params (`use_gpu`, `use_mp`) no longer valid | Updated to new API: `use_doc_orientation_classify`, `.predict()` |
+| **Missing Rotation Detection** | Images upside down, garbage OCR | No endpoint for Tesseract OSD | Added `/detect-rotation` endpoint |
+| **Text Lumped Together** | "CanadianSolar370-395w" | No spacing around numbers | Added `add_spaces_around_numbers()` post-processing |
+| **Table Columns Misaligned** | Multi-column text concatenated | Fixed gap threshold | Column-first layout analysis with adaptive thresholds |
 
-## Fixes Applied from chatLog.txt
+#### Frontend Issues
+| Issue | Symptom | Root Cause | Fix |
+|-------|---------|------------|-----|
+| **Logs Disappearing** | All logs cleared on Extract | `setLogs([])` in `processReceipt()` | Removed - logs only clear on new file |
+| **HEIC Race Condition** | 400 error, OCR before conversion | Button clickable during preprocessing | Added `isPreprocessing` state, disabled button |
+| **Health Check Spam** | Thousands of checks/second | useEffect with `[onStatusChange]` dependency | Used `useRef` to start monitoring once |
+| **Base64 Log Flooding** | Browser crash, memory spike | Logging full data: URLs (megabytes) | Skip `data:` URLs, truncate to 80 chars |
+| **Empty Log Messages** | Logs show timestamp but no text | `systemLogger.info(message)` instead of `(category, message)` | Fixed all calls to include category |
+| **Text Blocks Not Grouped** | Individual lines instead of paragraphs | Frontend used `data.blocks` not `data.raw_text` | Use backend's layout-analyzed `raw_text` |
 
-### Backend (`backend/app.py`)
-1. Added `/detect-rotation` endpoint using Tesseract OSD
-2. Added `PATTERN_AMPERSAND` and `REGEX_CORRECTIONS` patterns
-3. Enhanced `clean_ocr_text()` with multi-step cleaning:
-   - Dictionary-based corrections
-   - Regex-based spacing fixes
-   - Ampersand spacing normalization
-4. PaddleOCR settings: `use_angle_cls=False`, `det_limit_side_len=2560`
+#### CI/CD Issues
+| Issue | Fix |
+|-------|-----|
+| **Mypy type errors** | Added `type: ignore[index]` for HoughLinesP, disabled `warn_unused_ignores` |
+| **Bundle size exceeded** | Increased limit to 2.5MB (Tesseract.js + ExcelJS) |
+| **GitHub Pages notice** | Detect `github.io` hostname, show frontend-only demo notice |
 
-### Dockerfile
-- Added `tesseract-ocr` and `tesseract-ocr-osd` packages
+### Lessons Learned
 
-### Frontend (`src/services/ocrService.ts`)
-- Added `detectTextOrientation()` function
-- Exported `rotateImageCanvas` for manual rotation
-- Updated `processWithDocker()` to detect orientation before OCR
+1. **Always restart dev server** - Vite caches code; changes require restart
+2. **Test in private/incognito** - Browser cache hides real issues
+3. **Use Selenium for verification** - Manual testing is unreliable for async operations
+4. **Log everything verbosely** - Silent failures are debugging nightmares
+5. **Document issues as JSON** - See `project_issues.json` for full audit trail
 
-### Frontend (`src/App.tsx`)
-- Added output tabs (text, json, csv, xlsx, sql)
-- Added manual rotation controls (CCW/CW buttons)
-- Added useMemo hooks for format conversion
-- Added download handlers for all formats
+---
 
-### Tests (`tests/receipts-ocr.spec.ts`)
-- Updated selectors for new output tabs UI
-- Fixed test image paths
-- Fixed backend API response expectations
+## 🔮 Best Practices & Next Steps
 
-### CI/CD (`.github/workflows/quality.yml`)
-- Fixed working directory for root-level frontend structure
+### Recommended Improvements
+| Priority | Improvement | Rationale |
+|----------|-------------|-----------|
+| **High** | Server-Sent Events (SSE) | Real-time backend logs to frontend |
+| **High** | Unit Tests (pytest) | Backend test coverage |
+| **Medium** | 80% Coverage Threshold | Enforce in CI |
+| **Medium** | Database Migrations | Alembic for schema versioning |
+| **Low** | Bundle Size Monitoring | Track and optimize over time |
 
-## Quality Gates
+### Performance Notes
+- `text_det_limit_side_len=2560` - Balances quality/speed for 4K images
+- HEIC conversion: 85% JPEG quality
+- Large images: ~60-90 seconds OCR time on CPU
+- Lazy loading for ExcelJS (~500KB)
 
-| Tool | Purpose | Config |
-|------|---------|--------|
-| **trailing-whitespace** | Trim trailing whitespace | `.pre-commit-config.yaml` |
-| **end-of-file-fixer** | Ensure files end with newline | `.pre-commit-config.yaml` |
-| **check-yaml** | Validate YAML syntax | `.pre-commit-config.yaml` |
-| **check-json** | Validate JSON syntax | `.pre-commit-config.yaml` |
-| **check-added-large-files** | Prevent large file commits | `.pre-commit-config.yaml` |
-| **detect-private-key** | Prevent key leaks | `.pre-commit-config.yaml` |
-| **Ruff** v0.8.1 | Python linting + formatting | `backend/pyproject.toml` |
-| **Mypy** v1.13.0 | Python type checking | `backend/pyproject.toml` |
-| **ESLint** | TypeScript/JavaScript linting | `eslint.config.js` |
-| **TypeScript** | Strict type checking | `tsconfig.*.json` |
+---
 
-## Development Setup
+## 🛠️ Development Setup
 
 ### Prerequisites
 - Node.js 20+
-- Python 3.12+
-- Docker (optional)
+- Docker & Docker Compose
+- Python 3.12+ (for local backend development)
 
-### Quick Start
+### Quick Start (Docker - Recommended)
 
 ```bash
-# Install dependencies
+# Clone and start everything
+git clone https://github.com/swipswaps/receipts-ocr.git
+cd receipts-ocr
+
+# Start backend (wait ~60s for PaddleOCR to initialize)
+docker compose up -d
+
+# Start frontend
 npm install
-pip install -r backend/requirements.txt
-
-# Install pre-commit hooks
-pre-commit install
-
-# Start frontend dev server
 npm run dev
 
-# Start backend (in separate terminal)
-cd backend && python app.py
-
-# Or use Docker Compose
-docker-compose up -d
+# Open http://localhost:5173
 ```
 
-### Running Quality Checks
+### Quality Gates (11 checks)
 
 ```bash
+# Install hooks
+pre-commit install
+
 # Run all checks
 pre-commit run --all-files
-
-# Run Playwright tests
-npx playwright test
 ```
 
-## Best Practices & Next Steps
+| Category | Tools |
+|----------|-------|
+| **File hygiene** | trailing-whitespace, end-of-file-fixer, check-yaml, check-json |
+| **Security** | check-added-large-files, detect-private-key |
+| **Python** | Ruff v0.8.1 (lint+format), Mypy v1.13.0 (types) |
+| **TypeScript** | ESLint, TypeScript strict mode |
+| **Build** | Bundle size limit (2.5MB) |
 
-### Recommended Improvements
-1. **SSE Log Streaming** - Add real-time backend logs to frontend
-2. **Unit Tests** - Add Python unit tests for backend (`pytest`)
-3. **Coverage Thresholds** - Enable 80% coverage requirement in CI
-4. **Bundle Size Monitoring** - Track and optimize frontend bundle size
-5. **Database Migrations** - Add Alembic for schema versioning
+---
 
-### Performance Optimization
-- `det_limit_side_len=2560` balances quality and speed
-- HEIC conversion uses 85% JPEG quality
-- Lazy loading for heavy dependencies (xlsx)
-
-## Architecture
+## 📁 Architecture
 
 ```
 receipts-ocr/
 ├── backend/
-│   ├── app.py           # Flask API + PaddleOCR + rotation detection
-│   ├── Dockerfile       # Backend container with Tesseract
-│   ├── pyproject.toml   # Ruff/Mypy config
-│   └── requirements.txt
+│   ├── app.py              # Flask API + PaddleOCR + layout analysis
+│   ├── Dockerfile          # Backend container with Tesseract OSD
+│   └── pyproject.toml      # Ruff/Mypy config
 ├── src/
-│   ├── App.tsx          # Main React component with output tabs
-│   ├── App.css          # Styles for rotation controls, tabs
-│   ├── types.ts         # TypeScript types including OutputTab
+│   ├── App.tsx             # Main React component
+│   ├── types.ts            # TypeScript types (OcrResponse, TableRow)
+│   ├── components/
+│   │   └── DockerStatus.tsx # Health monitoring + GitHub Pages notice
 │   └── services/
-│       └── ocrService.ts # API client + rotation detection
-├── tests/
-│   └── receipts-ocr.spec.ts # Playwright E2E tests
-├── .github/
-│   └── workflows/
-│       └── quality.yml  # CI pipeline
-├── .pre-commit-config.yaml
-├── docker-compose.yml
-├── eslint.config.js
-├── playwright.config.ts
-└── package.json
+│       ├── ocrService.ts   # PaddleOCR API client
+│       └── systemLogger.ts # Network request interceptor
+├── .github/workflows/
+│   ├── deploy.yml          # GitHub Pages deployment
+│   └── quality.yml         # CI quality gates
+├── project_issues.json     # Full issue audit trail (25 issues)
+└── docker-compose.yml
 ```
+
+### Key Backend Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check (ocr_engine, database status) |
+| `/ocr` | POST | Process image, return text blocks + layout |
+| `/detect-rotation` | POST | Tesseract OSD orientation detection |
+| `/receipts` | GET/POST | Receipt CRUD with PostgreSQL |
+
+---
+
+## 📋 Issue Tracking
+
+All issues are documented in `project_issues.json` with:
+- Symptom, root cause, and fix details
+- Files modified
+- Verification method (Selenium/Playwright/manual)
+
+To view the full audit trail:
+```bash
+cat project_issues.json | jq '.issues[] | {id, title, status}'
+```
+
+---
 
 ## License
 

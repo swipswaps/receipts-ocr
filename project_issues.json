@@ -3,13 +3,14 @@
   "repository": "https://github.com/swipswaps/receipts-ocr",
   "last_updated": "2025-12-06",
   "summary": {
-    "total_issues": 22,
-    "fixed": 20,
+    "total_issues": 25,
+    "fixed": 23,
     "known_limitations": 2,
     "chat_logs_reviewed": [
       "/home/owner/Documents/Docker-OCR-2/chatLog.txt",
       "/home/owner/Documents/Docker-OCR-2/chatLog2.txt",
-      "/home/owner/Documents/Docker-OCR-2/chatLog3.txt"
+      "/home/owner/Documents/Docker-OCR-2/chatLog3.txt",
+      "/home/owner/Documents/Docker-OCR-2/chatLog5.txt"
     ]
   },
   "issues": [
@@ -316,6 +317,50 @@
         "action": "Backend returns logs in JSON response, frontend displays them via onLog callback"
       },
       "verified_by": "selenium"
+    },
+    {
+      "id": 23,
+      "category": "frontend",
+      "title": "Text Blocks Not Grouped - Individual Lines Instead of Paragraphs",
+      "status": "FIXED",
+      "severity": "high",
+      "symptom": "OCR output shows each line separately instead of grouped blocks (addresses, catalog items)",
+      "root_cause": "Frontend processWithDocker() used data.blocks (individual lines) instead of backend's layout-analyzed data.raw_text which groups text spatially",
+      "file": "src/services/ocrService.ts",
+      "fix": {
+        "action": "Changed raw_text extraction from 'data.text || data.blocks.map().join()' to 'data.raw_text' which uses backend's column-first layout analysis",
+        "code_before": "const raw_text = data.text || data.blocks?.map((b) => b.text).join('\\n') || '';",
+        "code_after": "const raw_text = data.raw_text || data.blocks?.map((b) => b.text).join('\\n') || '';"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 24,
+      "category": "frontend",
+      "title": "OCR Response Not Logged - Appears to Stall",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "System logs show 'POST /ocr' but no response log appears, making it look like the app is frozen",
+      "root_cause": "No progress or response logging after fetch() call to /ocr endpoint",
+      "file": "src/services/ocrService.ts",
+      "fix": {
+        "action": "Added progress log before fetch ('Waiting for PaddleOCR response...') and detailed response log after ('OCR complete: X blocks, Y columns, Z rows')"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 25,
+      "category": "frontend",
+      "title": "Layout Analysis Data Not Passed to Frontend",
+      "status": "FIXED",
+      "severity": "low",
+      "symptom": "Frontend didn't receive table_rows, column_count, row_count from backend layout analysis",
+      "root_cause": "OcrResponse type didn't include layout fields, processWithDocker() didn't pass them through",
+      "files": ["src/types.ts", "src/services/ocrService.ts"],
+      "fix": {
+        "action": "Added TableRow interface and table_rows/column_count/row_count to OcrResponse type, passed through in processWithDocker()"
+      },
+      "verified_by": "typescript"
     }
   ],
   "verification_methods": {

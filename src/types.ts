@@ -25,6 +25,12 @@ export interface OcrBlock {
   _h: number;
 }
 
+export interface TableRow {
+  row: number;
+  cells: string[];
+  confidences: number[];
+}
+
 export interface OcrResponse {
   success: boolean;
   filename: string;
@@ -32,6 +38,10 @@ export interface OcrResponse {
   raw_text: string;
   parsed: ParsedReceipt;
   error?: string;
+  // Layout analysis results
+  table_rows?: TableRow[];
+  column_count?: number;
+  row_count?: number;
 }
 
 export interface Receipt {
