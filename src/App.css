@@ -1030,3 +1030,114 @@ body {
   font-size: 13px;
   opacity: 0.9;
 }
+
+/* Quick Setup Section */
+.docker-status .quick-setup {
+  background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #3b82f6;
+}
+
+.docker-status .quick-setup h4 {
+  margin: 0 0 8px 0;
+  color: #60a5fa;
+}
+
+.docker-status .quick-setup p {
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.docker-status .one-liner-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f172a;
+  padding: 12px;
+  border-radius: 6px;
+  margin: 12px 0;
+}
+
+.docker-status .one-liner {
+  flex: 1;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  color: #22d3ee;
+  word-break: break-all;
+  background: transparent;
+  padding: 0;
+}
+
+.docker-status .copy-btn {
+  background: #3b82f6;
+  border: none;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.docker-status .copy-btn:hover {
+  background: #2563eb;
+}
+
+.docker-status .script-info {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.docker-status .script-info small {
+  opacity: 0.7;
+}
+
+/* Manual Steps Collapsible */
+.docker-status .manual-steps {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.docker-status .manual-steps summary {
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.docker-status .manual-steps ol {
+  padding-left: 20px;
+  margin: 8px 0 0 0;
+}
+
+.docker-status .manual-steps li {
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.docker-status .manual-steps code {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+/* Download Button */
+.docker-status .download-btn {
+  display: inline-block;
+  background: #10b981;
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.docker-status .download-btn:hover {
+  background: #059669;
+}

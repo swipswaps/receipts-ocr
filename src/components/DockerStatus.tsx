@@ -16,6 +16,7 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
   const [status, setStatus] = useState<DockerHealthStatus | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Use refs to prevent re-registering monitoring on every render
   const onStatusChangeRef = useRef(onStatusChange);
@@ -59,6 +60,36 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
     setChecking(false);
   };
 
+  // Derived values (computed from state, not hooks)
+  const instructions = dockerHealthService.getSetupInstructions();
+  const isGitHubPages = window.location.hostname.includes('github.io');
+  const isWindows = navigator.userAgent.toLowerCase().includes('win');
+  const scriptUrl = isWindows
+    ? 'https://raw.githubusercontent.com/swipswaps/receipts-ocr/main/scripts/setup.ps1'
+    : 'https://raw.githubusercontent.com/swipswaps/receipts-ocr/main/scripts/setup.sh';
+  const oneLiner = isWindows
+    ? 'irm https://raw.githubusercontent.com/swipswaps/receipts-ocr/main/scripts/setup.ps1 | iex'
+    : 'curl -fsSL https://raw.githubusercontent.com/swipswaps/receipts-ocr/main/scripts/setup.sh | bash';
+
+  const copyOneLiner = async () => {
+    try {
+      await navigator.clipboard.writeText(oneLiner);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const ta = document.createElement('textarea');
+      ta.value = oneLiner;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Early returns for loading and healthy states
   if (!status) {
     return (
       <div className="docker-status checking">
@@ -67,8 +98,6 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
       </div>
     );
   }
-
-  const instructions = dockerHealthService.getSetupInstructions();
 
   if (status.isHealthy) {
     return (
@@ -80,9 +109,7 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
     );
   }
 
-  // Detect if running on GitHub Pages
-  const isGitHubPages = window.location.hostname.includes('github.io');
-
+  // Unhealthy state - show setup instructions
   return (
     <div className="docker-status unhealthy">
       <div className="status-header" onClick={() => setExpanded(!expanded)}>
@@ -96,31 +123,53 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
           {isGitHubPages && (
             <div className="github-pages-notice">
               <p><strong>🌐 You're viewing this on GitHub Pages</strong></p>
-              <p>This is a <em>frontend-only</em> demo. For high-accuracy PaddleOCR, you need to run the Docker backend on your local machine.</p>
+              <p>This is a <em>frontend-only</em> demo. For high-accuracy PaddleOCR, run the setup locally.</p>
             </div>
           )}
 
           <p className="error-message">
-            <strong>Error:</strong> {status.error || 'Cannot connect to backend on port 5001'}
+            <strong>Status:</strong> {status.error || 'Cannot connect to backend on port 5001'}
           </p>
 
           {status.retryCount > 0 && (
             <p className="retry-info">
-              Retry attempts: {status.retryCount} / 3
+              Connection attempts: {status.retryCount} / 3
             </p>
           )}
 
           <div className="fallback-info">
             <p>📋 Currently using browser-based Tesseract.js (lower accuracy)</p>
-            <p>🚀 <strong>For 10x better results</strong>, run Docker locally:</p>
+            <p>🚀 <strong>For 10x better results</strong>, run the automated setup:</p>
           </div>
 
-          <div className="setup-instructions">
-            <h4>Setup ({instructions.platform})</h4>
+          {/* One-click setup section */}
+          <div className="quick-setup">
+            <h4>🎯 Quick Setup (one command)</h4>
+            <p>Open {isWindows ? 'PowerShell (Admin)' : 'Terminal'} and paste:</p>
+            <div className="one-liner-container">
+              <code className="one-liner">{oneLiner}</code>
+              <button
+                className="copy-btn"
+                onClick={copyOneLiner}
+                title="Copy to clipboard"
+              >
+                {copied ? '✓' : '📋'}
+              </button>
+            </div>
+            <p className="script-info">
+              This script will: check Docker → clone repo → build containers → start app
+              <br />
+              <small>All steps show real-time progress and error messages.</small>
+            </p>
+          </div>
+
+          {/* Manual steps as fallback */}
+          <details className="manual-steps">
+            <summary>📝 Or follow manual steps ({instructions.platform})</summary>
             <ol>
               {instructions.steps.map((step, i) => (
                 <li key={i}>
-                  {step.includes('docker compose') ? (
+                  {step.includes('docker') || step.includes('git') || step.includes('npm') || step.includes('curl') ? (
                     <code>{step}</code>
                   ) : (
                     step
@@ -128,7 +177,7 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
                 </li>
               ))}
             </ol>
-          </div>
+          </details>
 
           <div className="status-actions">
             <button
@@ -136,26 +185,34 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
               onClick={handleRetry}
               disabled={checking}
             >
-              {checking ? '🔄 Checking...' : '🔁 Retry Connection'}
+              {checking ? '🔄 Checking...' : '🔁 Test Connection'}
             </button>
+
+            <a
+              href={scriptUrl}
+              download
+              className="download-btn"
+            >
+              📥 Download Script
+            </a>
 
             {onTroubleshoot && (
               <button
                 className="troubleshoot-btn"
                 onClick={onTroubleshoot}
               >
-                🔧 Run Diagnostics
+                🔧 Diagnostics
               </button>
             )}
           </div>
 
           <a
-            href="https://github.com/swipswaps/receipts-ocr"
+            href="https://github.com/swipswaps/receipts-ocr#troubleshooting-docker"
             target="_blank"
             rel="noopener noreferrer"
             className="github-link"
           >
-            📚 View Full Setup Guide
+            📚 Troubleshooting Guide
           </a>
         </div>
       )}
