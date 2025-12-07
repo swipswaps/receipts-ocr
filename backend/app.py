@@ -188,8 +188,16 @@ def analyze_layout_column_first(
 
     if x_gaps:
         gap_values = sorted([g[0] for g in x_gaps], reverse=True)
-        # Large gaps separate columns - use adaptive threshold
-        gap_threshold = max(median_width * 1.5, 300)
+
+        # Adaptive threshold: use statistical outlier detection for column gaps
+        # Column gaps are typically much larger than word gaps
+        if len(gap_values) >= 3:
+            # Use median gap as baseline - gaps > 3x median are column separators
+            median_gap = sorted(gap_values)[len(gap_values) // 2]
+            gap_threshold = max(median_gap * 3, median_width * 0.8, 100)
+        else:
+            # Fallback for few gaps: use adaptive minimum
+            gap_threshold = max(median_width * 1.0, 150)
 
         logger.debug(f"X gaps (largest 5): {gap_values[:5]}, threshold: {gap_threshold:.0f}px")
 
@@ -297,10 +305,15 @@ def analyze_layout_column_first(
                     }
                 )
 
-        # Build text line (tab-separated for multi-column)
-        row_text = "\t".join(row_cells)
-        if row_text.strip():
-            extracted_lines.append(row_text)
+        # Build text: each cell on its own line for better readability
+        # For multi-column documents, add column prefix for clarity
+        for cell_text in row_cells:
+            if cell_text.strip():
+                if num_cols > 1:
+                    # Multi-column: prefix with row number for clarity
+                    extracted_lines.append(f"{row_idx + 1}\t{cell_text}")
+                else:
+                    extracted_lines.append(cell_text)
 
     raw_text = "\n".join(extracted_lines)
 

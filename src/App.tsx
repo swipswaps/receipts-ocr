@@ -3,7 +3,7 @@
  * Based on Docker-OCR-2 patterns from llm_notes
  */
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { Upload, FileText, Database, Trash2, Save, RefreshCw, CheckCircle, AlertCircle, Info, AlertTriangle, Download, RotateCcw, RotateCw } from 'lucide-react';
+import { Upload, FileText, Database, Trash2, RefreshCw, CheckCircle, AlertCircle, Info, AlertTriangle, Download, RotateCcw, RotateCw } from 'lucide-react';
 import type { OcrResponse, Receipt, LogEntry, BackendHealth, OcrEngine, OutputTab } from './types';
 import {
   checkBackendHealth,
@@ -38,6 +38,8 @@ function App() {
   const [extractedText, setExtractedText] = useState<string>('');
   const [showSystemLogs, setShowSystemLogs] = useState(false);
   const [showTroubleshooter, setShowTroubleshooter] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -242,7 +244,10 @@ function App() {
 
   // Save to database
   const handleSave = async () => {
-    if (!ocrResult || !file) return;
+    if (!ocrResult || !file || isSaving) return;
+
+    setIsSaving(true);
+    setSaveStatus('idle');
 
     try {
       const { receipt_id } = await saveReceipt(
@@ -251,9 +256,16 @@ function App() {
         ocrResult.raw_text
       );
       addLog(`Receipt saved to database (ID: ${receipt_id})`, 'success');
+      setSaveStatus('success');
+      // Clear success status after 3 seconds
+      setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
       addLog(`Save failed: ${msg}`, 'error');
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -383,8 +395,20 @@ function App() {
               </button>
 
               {ocrResult && backendHealth.status === 'healthy' && (
-                <button className="btn secondary" onClick={handleSave}>
-                  <Save size={16} /> Save to Database
+                <button
+                  className={`btn secondary ${saveStatus === 'success' ? 'save-success' : saveStatus === 'error' ? 'save-error' : ''}`}
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <><RefreshCw className="spin" size={16} /> Saving...</>
+                  ) : saveStatus === 'success' ? (
+                    <><CheckCircle size={16} /> Saved!</>
+                  ) : saveStatus === 'error' ? (
+                    <><AlertCircle size={16} /> Failed</>
+                  ) : (
+                    <><Database size={16} /> Save to Database</>
+                  )}
                 </button>
               )}
             </div>
