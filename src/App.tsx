@@ -1,25 +1,27 @@
 /**
- * Receipts OCR App - Main Component
+ * PaddleOCR App - Main Component
  * Based on Docker-OCR-2 patterns from llm_notes
  */
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Upload, FileText, Database, Trash2, RefreshCw, CheckCircle, AlertCircle, Info, AlertTriangle, Download, RotateCcw, RotateCw } from 'lucide-react';
-import type { OcrResponse, Receipt, LogEntry, BackendHealth, OcrEngine, OutputTab } from './types';
+import type { OcrResponse, Scan, LogEntry, BackendHealth, OcrEngine, OutputTab } from './types';
 import {
   checkBackendHealth,
   preprocessImage,
   processWithDocker,
   processWithTesseract,
-  listReceipts,
-  saveReceipt,
-  deleteReceipt,
-  rotateImageCanvas
+  listScans,
+  saveScan,
+  deleteScan,
+  clearAllScans,
+  rotateImageCanvas,
 } from './services/ocrService';
 import { autoCorrectRotation } from './services/angleDetectionService';
 import './App.css';
 import { DockerStatus } from './components/DockerStatus';
 import { SystemLogsPanel } from './components/SystemLogsPanel';
 import { TroubleshootingWizard } from './components/TroubleshootingWizard';
+import { ScanDetailsModal } from './components/ScanDetailsModal';
 import { systemLogger } from './services/systemLogger';
 
 function App() {
@@ -27,7 +29,7 @@ function App() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrResponse | null>(null);
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [scans, setScans] = useState<Scan[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPreprocessing, setIsPreprocessing] = useState(false);
@@ -40,6 +42,7 @@ function App() {
   const [showTroubleshooter, setShowTroubleshooter] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [selectedScanId, setSelectedScanId] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,23 +74,23 @@ function App() {
     checkHealth();
   }, [addLog]);
 
-  // Load receipts function
-  const loadReceipts = useCallback(async () => {
+  // Load scans from database
+  const loadScans = useCallback(async () => {
     try {
-      const data = await listReceipts();
-      setReceipts(data);
+      const scansData = await listScans();
+      setScans(scansData);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
-      addLog(`Failed to load receipts: ${msg}`, 'error');
+      addLog(`Failed to load scans: ${msg}`, 'error');
     }
   }, [addLog]);
 
-  // Load receipts when switching to history tab
+  // Load scans when switching to history tab
   useEffect(() => {
     if (activeTab === 'history' && backendHealth.status === 'healthy') {
-      loadReceipts();
+      loadScans();
     }
-  }, [activeTab, backendHealth.status, loadReceipts]);
+  }, [activeTab, backendHealth.status, loadScans]);
 
   // File handling
   const handleFileSelect = useCallback(async (selectedFile: File) => {
@@ -250,12 +253,8 @@ function App() {
     setSaveStatus('idle');
 
     try {
-      const { receipt_id } = await saveReceipt(
-        file.name,
-        ocrResult.parsed,
-        ocrResult.raw_text
-      );
-      addLog(`Receipt saved to database (ID: ${receipt_id})`, 'success');
+      const { scan_id } = await saveScan(file.name, ocrResult.raw_text);
+      addLog(`Scan saved to database (ID: ${scan_id})`, 'success');
       setSaveStatus('success');
       // Clear success status after 3 seconds
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -269,15 +268,28 @@ function App() {
     }
   };
 
-  // Delete receipt
+  // Delete scan
   const handleDelete = async (id: number) => {
     try {
-      await deleteReceipt(id);
-      setReceipts(prev => prev.filter(r => r.id !== id));
-      addLog(`Receipt ${id} deleted`, 'success');
+      await deleteScan(id);
+      setScans(prev => prev.filter(s => s.id !== id));
+      addLog(`Scan ${id} deleted`, 'success');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
       addLog(`Delete failed: ${msg}`, 'error');
+    }
+  };
+
+  // Clear all scans
+  const handleClearAll = async () => {
+    if (!confirm('Delete all saved scans? This cannot be undone.')) return;
+    try {
+      const { deleted_count } = await clearAllScans();
+      setScans([]);
+      addLog(`Cleared ${deleted_count} scans from database`, 'success');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      addLog(`Clear failed: ${msg}`, 'error');
     }
   };
 
@@ -293,7 +305,7 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1><FileText size={28} /> Receipts OCR</h1>
+        <h1><FileText size={28} /> PaddleOCR</h1>
         <DockerStatus
           onStatusChange={(isHealthy) => {
             setBackendHealth({
@@ -356,7 +368,7 @@ function App() {
               />
               {preview ? (
                 <div className="preview-container">
-                  <img src={preview} alt="Receipt preview" className="preview" />
+                  <img src={preview} alt="Image preview" className="preview" />
                   <div className="rotation-controls">
                     <button
                       className="rotate-btn"
@@ -377,7 +389,7 @@ function App() {
               ) : (
                 <div className="dropzone-placeholder">
                   <Upload size={48} />
-                  <p>Drop receipt image or click to upload</p>
+                  <p>Drop image or click to upload</p>
                   <small>Supports JPEG, PNG, HEIC</small>
                 </div>
               )}
@@ -530,28 +542,45 @@ function App() {
         ) : (
           <div className="history-view">
             <div className="history-header">
-              <h2>Saved Receipts</h2>
-              <button className="btn secondary" onClick={loadReceipts}>
-                <RefreshCw size={16} /> Refresh
-              </button>
+              <h2>Saved Scans ({scans.length})</h2>
+              <div className="history-actions">
+                <button className="btn secondary" onClick={loadScans}>
+                  <RefreshCw size={16} /> Refresh
+                </button>
+                {scans.length > 0 && (
+                  <button className="btn danger" onClick={handleClearAll}>
+                    <Trash2 size={16} /> Clear All
+                  </button>
+                )}
+              </div>
             </div>
 
-            {receipts.length === 0 ? (
-              <p className="empty">No receipts saved yet</p>
+            {scans.length === 0 ? (
+              <p className="empty">No scans saved yet</p>
             ) : (
-              <div className="receipts-list">
-                {receipts.map(receipt => (
-                  <div key={receipt.id} className="receipt-card">
-                    <div className="receipt-info">
-                      <strong>{receipt.store_name || receipt.filename}</strong>
-                      <small>{new Date(receipt.created_at).toLocaleDateString()}</small>
-                    </div>
-                    <div className="receipt-total">
-                      ${receipt.total?.toFixed(2) || '—'}
+              <div className="scans-list">
+                {scans.map(scan => (
+                  <div
+                    key={scan.id}
+                    className="scan-card"
+                    onClick={() => setSelectedScanId(scan.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && setSelectedScanId(scan.id)}
+                  >
+                    <div className="scan-info">
+                      <strong>{scan.filename || `Scan #${scan.id}`}</strong>
+                      <small>{new Date(scan.created_at).toLocaleString()}</small>
+                      <span className="scan-preview">
+                        {scan.raw_text.substring(0, 100)}...
+                      </span>
                     </div>
                     <button
                       className="btn icon"
-                      onClick={() => handleDelete(receipt.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(scan.id);
+                      }}
                       title="Delete"
                     >
                       <Trash2 size={16} />
@@ -574,6 +603,18 @@ function App() {
         isOpen={showTroubleshooter}
         onClose={() => setShowTroubleshooter(false)}
       />
+
+      {/* Scan Details Modal */}
+      {selectedScanId && (
+        <ScanDetailsModal
+          scanId={selectedScanId}
+          onClose={() => setSelectedScanId(null)}
+          onDeleted={() => {
+            setSelectedScanId(null);
+            loadScans();
+          }}
+        />
+      )}
     </div>
   );
 }

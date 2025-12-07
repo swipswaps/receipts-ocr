@@ -43,3 +43,8 @@ eggs/
 # Test results
 test-results/
 playwright-report/
+
+# App state files (managed by start.sh/stop.sh)
+.vite.pid
+.firewall-rules-added
+.env

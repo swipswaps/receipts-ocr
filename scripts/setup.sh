@@ -98,29 +98,13 @@ if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
     exit 1
 fi
 
-# Step 6: Install npm and start frontend
-log_step "Step 6/6: Setting up frontend..."
+# Step 6: Install npm dependencies
+log_step "Step 6/7: Setting up frontend..."
 if command -v npm &> /dev/null; then
     log_ok "npm found: $(npm --version)"
     echo "    Installing dependencies..."
     npm install --silent
     log_ok "Dependencies installed"
-
-    echo ""
-    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║                    Setup Complete!                        ║${NC}"
-    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    echo "To start the app, run:"
-    echo -e "  ${BLUE}npm run dev${NC}"
-    echo ""
-    echo "Then open: http://localhost:5173"
-    echo ""
-    read -p "Start the app now? [Y/n] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-        npm run dev
-    fi
 else
     log_warn "npm not found - please install Node.js 20+ from https://nodejs.org"
     echo ""
@@ -128,4 +112,110 @@ else
     echo "  cd ${REPO_DIR}"
     echo "  npm install"
     echo "  npm run dev"
+    exit 0
+fi
+
+# Step 7: Network access and firewall configuration (LAST STEP)
+log_step "Step 7/7: Network Access Configuration"
+echo ""
+echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║                    Setup Complete!                        ║${NC}"
+echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# Get local IP
+LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "unknown")
+FIREWALL_CONFIGURED=false
+
+echo "Access the app:"
+echo -e "  ${BLUE}Local:${NC}   http://localhost:5173"
+if [ "$LOCAL_IP" != "unknown" ]; then
+    echo -e "  ${BLUE}Network:${NC} http://${LOCAL_IP}:5173"
+fi
+echo ""
+
+# Check and configure firewall
+echo "Checking firewall for network access from other devices..."
+echo ""
+
+# Check for ufw (Ubuntu/Debian)
+if command -v ufw &> /dev/null; then
+    UFW_STATUS=$(sudo ufw status 2>/dev/null | head -1)
+    if echo "$UFW_STATUS" | grep -q "active"; then
+        log_warn "ufw firewall is active"
+        echo ""
+        echo "    To access this app from phones/tablets/other computers,"
+        echo "    ports 5173 (frontend) and 5001 (backend) must be opened."
+        echo ""
+        read -p "    Open firewall ports now? [Y/n] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+            sudo ufw allow 5173/tcp comment "PaddleOCR frontend"
+            sudo ufw allow 5001/tcp comment "PaddleOCR backend"
+            log_ok "Firewall ports opened (5173, 5001)"
+            FIREWALL_CONFIGURED=true
+        else
+            echo ""
+            log_warn "Skipped. To enable network access later, run:"
+            echo -e "    ${BLUE}sudo ufw allow 5173/tcp && sudo ufw allow 5001/tcp${NC}"
+        fi
+    else
+        log_ok "ufw is inactive - no firewall blocking"
+        FIREWALL_CONFIGURED=true
+    fi
+# Check for firewalld (Fedora/RHEL/CentOS)
+elif command -v firewall-cmd &> /dev/null; then
+    if systemctl is-active --quiet firewalld; then
+        log_warn "firewalld is active"
+        echo ""
+        echo "    To access this app from phones/tablets/other computers,"
+        echo "    ports 5173 (frontend) and 5001 (backend) must be opened."
+        echo ""
+        read -p "    Open firewall ports now? [Y/n] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+            sudo firewall-cmd --add-port=5173/tcp --permanent
+            sudo firewall-cmd --add-port=5001/tcp --permanent
+            sudo firewall-cmd --reload
+            log_ok "Firewall ports opened (5173, 5001)"
+            FIREWALL_CONFIGURED=true
+        else
+            echo ""
+            log_warn "Skipped. To enable network access later, run:"
+            echo -e "    ${BLUE}sudo firewall-cmd --add-port=5173/tcp --add-port=5001/tcp --permanent${NC}"
+            echo -e "    ${BLUE}sudo firewall-cmd --reload${NC}"
+        fi
+    else
+        log_ok "firewalld is inactive - no firewall blocking"
+        FIREWALL_CONFIGURED=true
+    fi
+# Check for iptables directly
+elif command -v iptables &> /dev/null; then
+    if sudo iptables -L INPUT -n 2>/dev/null | grep -qE "(DROP|REJECT)"; then
+        log_warn "iptables has blocking rules"
+        echo ""
+        echo "    To enable network access, run:"
+        echo -e "    ${BLUE}sudo iptables -I INPUT -p tcp --dport 5173 -j ACCEPT${NC}"
+        echo -e "    ${BLUE}sudo iptables -I INPUT -p tcp --dport 5001 -j ACCEPT${NC}"
+    else
+        log_ok "No blocking iptables rules detected"
+        FIREWALL_CONFIGURED=true
+    fi
+else
+    log_ok "No firewall detected"
+    FIREWALL_CONFIGURED=true
+fi
+
+echo ""
+if [ "$FIREWALL_CONFIGURED" = true ] && [ "$LOCAL_IP" != "unknown" ]; then
+    echo -e "${GREEN}✓ Network access ready: http://${LOCAL_IP}:5173${NC}"
+fi
+echo ""
+echo "To start the app, run:"
+echo -e "  ${BLUE}npm run dev${NC}"
+echo ""
+read -p "Start the app now? [Y/n] " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+    npm run dev
 fi

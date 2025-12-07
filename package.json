@@ -1,10 +1,12 @@
 {
   "name": "receipts-ocr",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "start": "bash scripts/start.sh",
+    "stop": "bash scripts/stop.sh",
+    "dev": "bash scripts/start.sh",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

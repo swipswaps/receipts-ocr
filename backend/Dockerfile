@@ -17,6 +17,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create non-root user for security
 RUN useradd -m -s /bin/bash appuser
 
+# Enable PaddlePaddle verbose logging (show inference progress)
+ENV GLOG_v=1
+ENV GLOG_logtostderr=1
+ENV FLAGS_call_stack_level=2
+
 WORKDIR /app
 
 # Install Python dependencies

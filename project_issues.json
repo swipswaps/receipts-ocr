@@ -1,10 +1,10 @@
 {
   "project": "receipts-ocr",
   "repository": "https://github.com/swipswaps/receipts-ocr",
-  "last_updated": "2025-12-06",
+  "last_updated": "2025-12-07",
   "summary": {
-    "total_issues": 27,
-    "fixed": 25,
+    "total_issues": 35,
+    "fixed": 33,
     "open": 0,
     "known_limitations": 2,
     "chat_logs_reviewed": [
@@ -13,7 +13,11 @@
       "/home/owner/Documents/Docker-OCR-2/chatLog3.txt",
       "/home/owner/Documents/Docker-OCR-2/chatLog5.txt",
       "/home/owner/Documents/Docker-OCR-2/chatLog6.txt",
-      "/home/owner/Documents/Docker-OCR-2/chatLog7.txt"
+      "/home/owner/Documents/Docker-OCR-2/chatLog7.txt",
+      "/home/owner/Documents/Docker-OCR-2/chatLog8.txt"
+    ],
+    "notes": [
+      "chatLog4.txt does not exist - numbering skipped in original logs"
     ]
   },
   "issues": [
@@ -404,8 +408,148 @@
       },
       "anti_pattern": "Do NOT use pseudo-progress (animated spinners with time estimates). Display REAL backend logs verbatim.",
       "verified_by": "manual"
+    },
+    {
+      "id": 28,
+      "category": "backend",
+      "title": "Database 500 Error - init_database Not Called",
+      "status": "FIXED",
+      "severity": "critical",
+      "symptom": "Save to Database returns 500 error, database tables don't exist",
+      "root_cause": "init_database() was not called at module load time, only init_ocr_engine() was",
+      "file": "backend/app.py",
+      "fix": {
+        "action": "Added init_database() call at module level alongside init_ocr_engine()"
+      },
+      "verified_by": "manual"
+    },
+    {
+      "id": 29,
+      "category": "backend",
+      "title": "Column Detection - Reading Rows Across Columns",
+      "status": "FIXED",
+      "severity": "high",
+      "symptom": "OCR reading 'Canadian Solar 370-395W Solar Panels... Solar Energy Unused' - mixing text from different columns",
+      "root_cause": "Fixed 300px threshold for column detection, not adaptive to document layout",
+      "file": "backend/app.py",
+      "fix": {
+        "action": "Changed from fixed 300px threshold to adaptive detection: median_gap × 3. Multi-column output shows each cell on its own line with row number prefix"
+      },
+      "verified_by": "selenium"
+    },
+    {
+      "id": 30,
+      "category": "frontend",
+      "title": "ReceiptDetailsModal Blue Screen - Field Name Mismatch",
+      "status": "FIXED",
+      "severity": "critical",
+      "symptom": "Clicking history items shows blue screen with blinking cursor instead of modal",
+      "root_cause": "Backend returns 'total_amount' as string, frontend expected 'total' as number. Calling .toFixed() on string crashed the component",
+      "file": "src/components/ReceiptDetailsModal.tsx",
+      "fix": {
+        "action": "Fixed field name mismatch and added proper type coercion for numeric fields"
+      },
+      "verified_by": "manual"
+    },
+    {
+      "id": 31,
+      "category": "deployment",
+      "title": "Network Access Blocked by Firewall",
+      "status": "FIXED",
+      "severity": "high",
+      "symptom": "App works on localhost but not accessible from other machines on network (192.168.x.x)",
+      "root_cause": "Linux firewall (firewalld/ufw) blocking incoming connections on ports 5173 and 5001",
+      "files": ["src/components/DockerStatus.tsx", "scripts/start.sh", "scripts/stop.sh"],
+      "fix": {
+        "action": "Added network diagnostics panel with firewall status detection, added start.sh/stop.sh scripts to manage firewall rules lifecycle"
+      },
+      "verified_by": "manual"
+    },
+    {
+      "id": 32,
+      "category": "frontend",
+      "title": "firewallCmd Undefined - Component Crash",
+      "status": "FIXED",
+      "severity": "critical",
+      "symptom": "Clicking 'Network access help' causes blue screen crash",
+      "root_cause": "firewallCmd variable referenced but never defined (had firewallCmdUfw, firewallCmdFirewalld, firewallCmdWindows but no firewallCmd)",
+      "file": "src/components/DockerStatus.tsx",
+      "fix": {
+        "action": "Removed unused imports/state from incomplete network diagnostics feature"
+      },
+      "verified_by": "manual"
+    },
+    {
+      "id": 33,
+      "category": "backend",
+      "title": "Incomplete Item Parsing - Only Price Lines",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "Raw OCR shows 6 items but only 3 parsed - only lines with $ prices extracted",
+      "root_cause": "parse_receipt_text() regex only matched lines with price patterns like '$X.XX'",
+      "file": "backend/app.py",
+      "fix": {
+        "action": "Modified backend to capture ALL OCR text lines as items, not just lines with prices"
+      },
+      "verified_by": "manual"
+    },
+    {
+      "id": 34,
+      "category": "database",
+      "title": "Database Schema Simplification",
+      "status": "FIXED",
+      "severity": "medium",
+      "symptom": "Complex receipt-specific schema (receipts + receipt_items tables) not suitable for general document OCR",
+      "root_cause": "Original schema designed for receipts with store_name, receipt_date, subtotal, tax, total, items",
+      "files": ["backend/app.py", "src/components/ScanDetailsModal.tsx", "src/services/ocrService.ts"],
+      "fix": {
+        "action": "Changed to single 'scans' table with id, filename, raw_text, created_at. Updated all /receipts/* endpoints to /scans/*. Created ScanDetailsModal to replace ReceiptDetailsModal"
+      },
+      "verified_by": "manual"
+    },
+    {
+      "id": 35,
+      "category": "deployment",
+      "title": "Port/Firewall Lifecycle Management",
+      "status": "FIXED",
+      "severity": "high",
+      "symptom": "Port 5173 left in use after app stops, firewall rules not cleaned up, killing wrong processes",
+      "root_cause": "No proper process/port management - app did not track which processes/firewall rules it created",
+      "files": ["scripts/start.sh", "scripts/stop.sh", ".env.example"],
+      "fix": {
+        "action": "Created start.sh (saves PID to .vite.pid, saves firewall rules to .firewall-rules-added) and stop.sh (only kills our processes, only removes rules we added). Added configurable ports via .env file"
+      },
+      "verified_by": "manual"
     }
   ],
+  "repeated_patterns": {
+    "description": "Common mistakes that have occurred multiple times",
+    "patterns": [
+      {
+        "pattern": "Inconsistent API_BASE/BACKEND_URL definitions",
+        "status": "FIXED",
+        "fix": "Created src/config.ts with centralized API_BASE export. Updated ocrService.ts, dockerHealthService.ts, angleDetectionService.ts, backendLogService.ts to import from config.ts"
+      },
+      {
+        "pattern": "TroubleshootingWizard.tsx has 6 hardcoded localhost:5001 references",
+        "status": "FIXED",
+        "fix": "Updated all 6 fetch calls to use API_BASE from config.ts"
+      },
+      {
+        "pattern": "useEffect dependency issues causing re-renders",
+        "status": "PARTIALLY_FIXED",
+        "examples": ["DockerStatus onStatusChange - FIXED with useRef"],
+        "remaining": "Review other components for similar issues",
+        "recommendation": "Use useRef for callbacks, or useCallback with stable dependencies"
+      },
+      {
+        "pattern": "Type mismatches between backend and frontend",
+        "status": "KNOWN",
+        "examples": ["total_amount vs total", "string vs number for prices"],
+        "recommendation": "Generate TypeScript types from backend API schema in future refactor"
+      }
+    ]
+  },
   "verification_methods": {
     "selenium_test": "python3 with selenium.webdriver.Firefox (private mode)",
     "heic_test_file": "/home/owner/Downloads/IMG_0371.heic",

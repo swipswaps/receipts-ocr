@@ -5,8 +5,7 @@
  */
 
 import { systemLogger } from './systemLogger';
-
-const BACKEND_URL = 'http://localhost:5001';
+import { API_BASE } from '../config';
 
 interface RotationDetectionResult {
   success: boolean;
@@ -29,7 +28,7 @@ export async function detectRotation(imageDataUrl: string): Promise<RotationDete
       ? imageDataUrl.split(',')[1]
       : imageDataUrl;
 
-    const response = await fetch(`${BACKEND_URL}/detect-rotation`, {
+    const response = await fetch(`${API_BASE}/detect-rotation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: base64Data }),

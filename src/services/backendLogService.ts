@@ -4,7 +4,7 @@
  * Issue #27: Backend logs not streamed to frontend
  */
 
-const API_BASE = 'http://localhost:5001';
+import { API_BASE } from '../config';
 
 export interface BackendLog {
   timestamp: number;

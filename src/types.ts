@@ -1,4 +1,4 @@
-// Receipt OCR Types
+// OCR Types - General purpose document scanning
 
 export interface ReceiptItem {
   id?: number;
@@ -44,6 +44,15 @@ export interface OcrResponse {
   row_count?: number;
 }
 
+// Simplified scan storage - just filename, raw text, and timestamp
+export interface Scan {
+  id: number;
+  filename: string;
+  raw_text: string;
+  created_at: string;
+}
+
+// Legacy Receipt type - kept for backwards compatibility during transition
 export interface Receipt {
   id: number;
   filename: string;

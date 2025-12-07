@@ -7,6 +7,9 @@ import { dockerHealthService } from '../services/dockerHealthService';
 import type { DockerHealthStatus } from '../services/dockerHealthService';
 import { systemLogger } from '../services/systemLogger';
 
+// Frontend version - must match backend BACKEND_VERSION for full compatibility
+const FRONTEND_VERSION = '1.0.0';
+
 interface DockerStatusProps {
   onStatusChange?: (isHealthy: boolean) => void;
   onTroubleshoot?: () => void;
@@ -64,12 +67,17 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
   const instructions = dockerHealthService.getSetupInstructions();
   const isGitHubPages = window.location.hostname.includes('github.io');
   const isWindows = navigator.userAgent.toLowerCase().includes('win');
+  const isNetworkAccess = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
   const scriptUrl = isWindows
     ? 'https://raw.githubusercontent.com/swipswaps/receipts-ocr/main/scripts/setup.ps1'
     : 'https://raw.githubusercontent.com/swipswaps/receipts-ocr/main/scripts/setup.sh';
   const oneLiner = isWindows
     ? 'irm https://raw.githubusercontent.com/swipswaps/receipts-ocr/main/scripts/setup.ps1 | iex'
     : 'curl -fsSL https://raw.githubusercontent.com/swipswaps/receipts-ocr/main/scripts/setup.sh | bash';
+  // Platform-specific firewall commands
+  const firewallCmd = isWindows
+    ? "New-NetFirewallRule -DisplayName 'PaddleOCR' -Direction Inbound -Protocol TCP -LocalPort 5173,5001 -Action Allow"
+    : 'sudo firewall-cmd --add-port=5173/tcp --add-port=5001/tcp --permanent && sudo firewall-cmd --reload';
 
   const copyOneLiner = async () => {
     try {
@@ -99,12 +107,90 @@ export const DockerStatus = ({ onStatusChange, onTroubleshoot }: DockerStatusPro
     );
   }
 
+  // Check version mismatch
+  const versionMismatch = status?.backendVersion && status.backendVersion !== FRONTEND_VERSION;
+
   if (status.isHealthy) {
     return (
-      <div className="docker-status healthy">
-        <span className="status-icon">✅</span>
-        <span>PaddleOCR Ready</span>
-        {status.ocrEngine && <span className="badge">{status.ocrEngine}</span>}
+      <div className={`docker-status healthy ${versionMismatch || isNetworkAccess ? 'with-warning' : ''}`}>
+        <div className="status-main">
+          <span className="status-icon">✅</span>
+          <span>PaddleOCR Ready</span>
+          {status.backendVersion && <span className="badge version">v{status.backendVersion}</span>}
+          {isNetworkAccess && <span className="badge network">🌐 {window.location.hostname}</span>}
+        </div>
+        {versionMismatch && (
+          <div className="version-warning">
+            <span className="warning-icon">⚠️</span>
+            <span>Backend v{status.backendVersion} ≠ Frontend v{FRONTEND_VERSION}</span>
+            <button
+              className="update-link"
+              onClick={() => setExpanded(!expanded)}
+              title="Show update instructions"
+            >
+              Update →
+            </button>
+            {expanded && (
+              <div className="update-instructions">
+                <p>Run these commands to update:</p>
+                <code>
+                  git pull origin main<br />
+                  docker compose up -d --build
+                </code>
+              </div>
+            )}
+          </div>
+        )}
+        {/* Show network troubleshooting when accessed from network but backend might be blocked */}
+        {isNetworkAccess && !versionMismatch && (
+          <div className="network-info">
+            <button
+              className="network-help-link"
+              onClick={() => setExpanded(!expanded)}
+            >
+              🔧 Network access help
+            </button>
+            {expanded && (
+              <div className="network-help">
+                <p className="help-title">Can't connect from other devices?</p>
+                <p className="help-desc">
+                  Your firewall may be blocking connections. Run this command in {isWindows ? 'PowerShell (as Admin)' : 'terminal'}
+                  to allow access on ports 5173 (frontend) and 5001 (backend):
+                </p>
+                <div className="cmd-box">
+                  <code>{firewallCmd}</code>
+                  <button
+                    className="copy-btn"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(firewallCmd);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      } catch {
+                        // Fallback for older browsers
+                        const el = document.createElement('textarea');
+                        el.value = firewallCmd;
+                        document.body.appendChild(el);
+                        el.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(el);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }
+                    }}
+                    title="Copy to clipboard"
+                  >
+                    {copied ? '✓ Copied' : '📋 Copy'}
+                  </button>
+                </div>
+                <p className="help-note">
+                  After running, other devices on your network can access:<br />
+                  <strong>http://{window.location.hostname}:5173</strong>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }

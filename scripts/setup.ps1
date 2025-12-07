@@ -91,29 +91,14 @@ if ($waitCount -ge $maxWait) {
     exit 1
 }
 
-# Step 6: Install npm and start frontend
-Write-Step "Step 6/6: Setting up frontend..."
+# Step 6: Install npm dependencies
+Write-Step "Step 6/7: Setting up frontend..."
 try {
     $npmVersion = npm --version
     Write-Ok "npm found: $npmVersion"
     Write-Host "    Installing dependencies..."
     npm install --silent
     Write-Ok "Dependencies installed"
-
-    Write-Host ""
-    Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Green
-    Write-Host "║                    Setup Complete!                        ║" -ForegroundColor Green
-    Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "To start the app, run:"
-    Write-Host "  npm run dev" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Then open: http://localhost:5173"
-    Write-Host ""
-    $reply = Read-Host "Start the app now? [Y/n]"
-    if ($reply -eq "" -or $reply -match "^[Yy]") {
-        npm run dev
-    }
 } catch {
     Write-Warn "npm not found - please install Node.js 20+ from https://nodejs.org"
     Write-Host ""
@@ -121,4 +106,86 @@ try {
     Write-Host "  cd $repoDir"
     Write-Host "  npm install"
     Write-Host "  npm run dev"
+    exit
+}
+
+# Step 7: Network access and firewall configuration (LAST STEP)
+Write-Step "Step 7/7: Network Access Configuration"
+Write-Host ""
+Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║                    Setup Complete!                        ║" -ForegroundColor Green
+Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+
+# Get local IP
+$firewallConfigured = $false
+try {
+    $localIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch "Loopback" -and $_.IPAddress -notmatch "^169\." } | Select-Object -First 1).IPAddress
+} catch {
+    $localIP = "unknown"
+}
+
+Write-Host "Access the app:"
+Write-Host "  Local:   " -NoNewline; Write-Host "http://localhost:5173" -ForegroundColor Cyan
+if ($localIP -ne "unknown") {
+    Write-Host "  Network: " -NoNewline; Write-Host "http://${localIP}:5173" -ForegroundColor Cyan
+}
+Write-Host ""
+
+# Check and configure firewall
+Write-Host "Checking firewall for network access from other devices..."
+Write-Host ""
+
+# Check if firewall rules already exist
+$frontendRule = Get-NetFirewallRule -DisplayName "PaddleOCR Frontend" -ErrorAction SilentlyContinue
+$backendRule = Get-NetFirewallRule -DisplayName "PaddleOCR Backend" -ErrorAction SilentlyContinue
+
+if ($frontendRule -and $backendRule) {
+    Write-Ok "Firewall rules already configured"
+    $firewallConfigured = $true
+} else {
+    Write-Warn "Firewall rules not found"
+    Write-Host ""
+    Write-Host "    To access this app from phones/tablets/other computers,"
+    Write-Host "    ports 5173 (frontend) and 5001 (backend) must be opened."
+    Write-Host ""
+    $reply = Read-Host "    Open firewall ports now? (requires Admin) [Y/n]"
+    if ($reply -eq "" -or $reply -match "^[Yy]") {
+        try {
+            $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            if (-not $isAdmin) {
+                Write-Warn "Not running as Administrator. Starting elevated prompt..."
+                $cmd = "New-NetFirewallRule -DisplayName 'PaddleOCR Frontend' -Direction Inbound -Protocol TCP -LocalPort 5173 -Action Allow; New-NetFirewallRule -DisplayName 'PaddleOCR Backend' -Direction Inbound -Protocol TCP -LocalPort 5001 -Action Allow"
+                Start-Process powershell -Verb RunAs -ArgumentList "-Command", $cmd -Wait
+            } else {
+                New-NetFirewallRule -DisplayName "PaddleOCR Frontend" -Direction Inbound -Protocol TCP -LocalPort 5173 -Action Allow | Out-Null
+                New-NetFirewallRule -DisplayName "PaddleOCR Backend" -Direction Inbound -Protocol TCP -LocalPort 5001 -Action Allow | Out-Null
+            }
+            Write-Ok "Firewall rules created (5173, 5001)"
+            $firewallConfigured = $true
+        } catch {
+            Write-Err "Failed to create firewall rules: $_"
+            Write-Host ""
+            Write-Host "    Run manually in Admin PowerShell:" -ForegroundColor Yellow
+            Write-Host "    New-NetFirewallRule -DisplayName 'PaddleOCR Frontend' -Direction Inbound -Protocol TCP -LocalPort 5173 -Action Allow" -ForegroundColor Cyan
+            Write-Host "    New-NetFirewallRule -DisplayName 'PaddleOCR Backend' -Direction Inbound -Protocol TCP -LocalPort 5001 -Action Allow" -ForegroundColor Cyan
+        }
+    } else {
+        Write-Host ""
+        Write-Warn "Skipped. To enable network access later, run in Admin PowerShell:"
+        Write-Host "    New-NetFirewallRule -DisplayName 'PaddleOCR Frontend' -Direction Inbound -Protocol TCP -LocalPort 5173 -Action Allow" -ForegroundColor Cyan
+    }
+}
+
+Write-Host ""
+if ($firewallConfigured -and $localIP -ne "unknown") {
+    Write-Host "✓ Network access ready: http://${localIP}:5173" -ForegroundColor Green
+}
+Write-Host ""
+Write-Host "To start the app, run:"
+Write-Host "  npm run dev" -ForegroundColor Cyan
+Write-Host ""
+$reply = Read-Host "Start the app now? [Y/n]"
+if ($reply -eq "" -or $reply -match "^[Yy]") {
+    npm run dev
 }

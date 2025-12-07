@@ -4,11 +4,10 @@
 import * as TesseractModule from 'tesseract.js';
 import * as exifr from 'exifr';
 import heic2any from 'heic2any';
-import type { OcrResponse, Receipt, ParsedReceipt } from '../types';
+import type { OcrResponse, ParsedReceipt } from '../types';
 import { dockerHealthService } from './dockerHealthService';
 import { backendLogService } from './backendLogService';
-
-const API_BASE = 'http://localhost:5001';
+import { API_BASE } from '../config';
 
 // Get createWorker from module (handles both default and named exports)
 const createWorker = TesseractModule.createWorker;
@@ -252,10 +251,9 @@ export const processWithDocker = async (
     // Use backend's layout-aware raw_text (groups text blocks spatially)
     // This preserves multi-line items like addresses and catalog entries
     const raw_text = data.raw_text || data.blocks?.map((b: { text: string }) => b.text).join('\n') || '';
-    const lines = raw_text.split('\n').filter((l: string) => l.trim());
 
-    // Parse the receipt text
-    const parsed = parseReceiptText(lines);
+    // Use backend's parsing (already done server-side) instead of re-parsing locally
+    const parsed = data.parsed || parseReceiptText(raw_text.split('\n').filter((l: string) => l.trim()));
 
     return {
       success: true,
@@ -277,7 +275,8 @@ export const processWithDocker = async (
 };
 
 /**
- * Simple receipt text parser
+ * Simple OCR text parser (fallback if backend doesn't provide parsed data)
+ * Captures all text lines as items, not just those with prices.
  */
 function parseReceiptText(lines: string[]): ParsedReceipt {
   const items: { name: string; quantity: number; unit_price: number | null; total_price: number | null }[] = [];
@@ -287,91 +286,148 @@ function parseReceiptText(lines: string[]): ParsedReceipt {
   let store_name = null;
 
   const pricePattern = /\$?\d+[.,]\d{2}/;
-
-  // First line often store name
-  if (lines.length > 0 && !pricePattern.test(lines[0])) {
-    store_name = lines[0].trim();
-  }
+  const excludeKeywords = ['subtotal', 'tax', 'total', 'change', 'cash', 'card', 'credit', 'debit'];
+  const MIN_ITEM_LENGTH = 3;
 
   for (const line of lines) {
-    const lower = line.toLowerCase();
-    const priceMatch = line.match(pricePattern);
+    const trimmed = line.trim();
+    if (trimmed.length < MIN_ITEM_LENGTH) continue;
+
+    const lower = trimmed.toLowerCase();
+    const priceMatch = trimmed.match(pricePattern);
     const price = priceMatch ? parseFloat(priceMatch[0].replace('$', '').replace(',', '')) : null;
 
-    if (lower.includes('subtotal') && price) {
-      subtotal = price;
-    } else if (lower.includes('tax') && price) {
-      tax = price;
-    } else if (lower.includes('total') && !lower.includes('subtotal') && price) {
-      total = price;
-    } else if (price && !['change', 'cash', 'card', 'credit', 'debit'].some(x => lower.includes(x))) {
-      const name = line.replace(pricePattern, '').trim();
-      if (name) {
-        items.push({ name, quantity: 1, unit_price: price, total_price: price });
-      }
+    // Skip metadata keywords
+    if (excludeKeywords.some(x => lower.includes(x))) {
+      if (lower.includes('subtotal') && price) subtotal = price;
+      else if (lower.includes('tax') && price) tax = price;
+      else if (lower.includes('total') && price) total = price;
+      continue;
     }
+
+    // Capture as item - with or without price
+    const name = trimmed.replace(pricePattern, '').trim();
+    if (name && name.length >= MIN_ITEM_LENGTH) {
+      items.push({ name, quantity: 1, unit_price: price, total_price: price });
+    }
+  }
+
+  // Use first item as store_name if available
+  if (items.length > 0) {
+    store_name = items[0].name;
   }
 
   return { store_name, items, subtotal, tax, total };
 }
 
 // ============================================================================
-// Database API functions
+// Database API functions - Simplified scan storage
 // ============================================================================
 
 /**
- * List all receipts from database
+ * Scan type - simple storage of OCR results
  */
-export const listReceipts = async (): Promise<Receipt[]> => {
-  const response = await fetch(`${API_BASE}/receipts`);
-  if (!response.ok) throw new Error('Failed to fetch receipts');
+export interface Scan {
+  id: number;
+  filename: string;
+  raw_text: string;
+  created_at: string;
+}
+
+/**
+ * List all scans from database
+ */
+export const listScans = async (): Promise<Scan[]> => {
+  const response = await fetch(`${API_BASE}/scans`);
+  if (!response.ok) throw new Error('Failed to fetch scans');
   const data = await response.json();
-  return data.receipts || [];
+  return data.scans || [];
 };
 
 /**
- * Get single receipt with items
+ * Get single scan
  */
-export const getReceipt = async (id: number): Promise<Receipt> => {
-  const response = await fetch(`${API_BASE}/receipts/${id}`);
-  if (!response.ok) throw new Error('Receipt not found');
+export const getScan = async (id: number): Promise<Scan> => {
+  const response = await fetch(`${API_BASE}/scans/${id}`);
+  if (!response.ok) throw new Error('Scan not found');
   return response.json();
 };
 
 /**
- * Save receipt to database
+ * Save scan to database
  */
-export const saveReceipt = async (
+export const saveScan = async (
   filename: string,
-  parsed: ParsedReceipt,
   raw_text: string
-): Promise<{ receipt_id: number }> => {
-  const response = await fetch(`${API_BASE}/receipts`, {
+): Promise<{ scan_id: number }> => {
+  const response = await fetch(`${API_BASE}/scans`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      filename,
-      store_name: parsed.store_name,
-      subtotal: parsed.subtotal,
-      tax: parsed.tax,
-      total: parsed.total,
-      raw_text,
-      items: parsed.items
-    })
+    body: JSON.stringify({ filename, raw_text })
   });
 
-  if (!response.ok) throw new Error('Failed to save receipt');
+  if (!response.ok) throw new Error('Failed to save scan');
   return response.json();
 };
 
 /**
- * Delete receipt from database
+ * Delete scan from database
  */
-export const deleteReceipt = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_BASE}/receipts/${id}`, {
+export const deleteScan = async (id: number): Promise<void> => {
+  const response = await fetch(`${API_BASE}/scans/${id}`, {
     method: 'DELETE'
   });
-  if (!response.ok) throw new Error('Failed to delete receipt');
+  if (!response.ok) throw new Error('Failed to delete scan');
+};
+
+/**
+ * Clear all scans from database
+ */
+export const clearAllScans = async (): Promise<{ deleted_count: number }> => {
+  const response = await fetch(`${API_BASE}/scans/clear`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) throw new Error('Failed to clear scans');
+  return response.json();
+};
+
+/**
+ * Database stats response type
+ */
+export interface DatabaseStats {
+  scan_count: number;
+  oldest_scan: string | null;
+  newest_scan: string | null;
+  database: string;
+  status: string;
+}
+
+/**
+ * Get database statistics
+ */
+export const getDatabaseStats = async (): Promise<DatabaseStats> => {
+  const response = await fetch(`${API_BASE}/stats`);
+  if (!response.ok) throw new Error('Failed to fetch database stats');
+  return response.json();
+};
+
+/**
+ * Export all scans as JSON or CSV
+ * Downloads the file directly in the browser
+ */
+export const exportScans = async (format: 'json' | 'csv'): Promise<void> => {
+  const response = await fetch(`${API_BASE}/scans/export?format=${format}`);
+  if (!response.ok) throw new Error('Failed to export scans');
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `scans_export.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };
 
 /**
@@ -415,4 +471,43 @@ export const processWithTesseract = async (
     raw_text: result.data.text,
     parsed
   };
+};
+
+/**
+ * Network diagnostics response type
+ */
+export interface NetworkDiagnostics {
+  ports: {
+    [port: string]: {
+      listening: boolean;
+      all_interfaces: boolean;
+    };
+  };
+  firewall: {
+    type: string;
+    active: boolean;
+    command?: string;
+  };
+  local_ips: string[];
+  network_url: string | null;
+  instructions: Array<{
+    issue: string;
+    fix: string;
+  }>;
+}
+
+/**
+ * Fetch network diagnostics from backend
+ */
+export const getNetworkDiagnostics = async (): Promise<NetworkDiagnostics | null> => {
+  try {
+    const response = await fetch(`${API_BASE}/network-diagnostics`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
 };

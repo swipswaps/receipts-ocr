@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { systemLogger } from '../services/systemLogger';
+import { API_BASE } from '../config';
 
 export interface DiagnosticResult {
   check: string;
@@ -47,7 +48,7 @@ export const TroubleshootingWizard = ({ isOpen, onClose, onDiagnosticsComplete }
       setTimeout(() => controller.abort(), 5000);
 
       const start = Date.now();
-      const response = await fetch('http://localhost:5001/', {
+      const response = await fetch(`${API_BASE}/`, {
         method: 'HEAD',
         signal: controller.signal,
       }).catch(() => null);
@@ -65,11 +66,11 @@ export const TroubleshootingWizard = ({ isOpen, onClose, onDiagnosticsComplete }
         newResults.push({
           check: 'Backend Connectivity',
           status: 'fail',
-          message: 'Cannot connect to http://localhost:5001',
+          message: `Cannot connect to ${API_BASE}`,
           fix: 'Start the Docker container with: docker compose up -d',
           command: 'docker compose up -d',
         });
-        systemLogger.error('troubleshoot', '❌ Backend not reachable at localhost:5001');
+        systemLogger.error('troubleshoot', `❌ Backend not reachable at ${API_BASE}`);
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -87,9 +88,9 @@ export const TroubleshootingWizard = ({ isOpen, onClose, onDiagnosticsComplete }
     // Check 2: Health endpoint
     setCurrentStep(2);
     try {
-      const response = await fetch('http://localhost:5001/health', {
+      const response = await fetch(`${API_BASE}/health`, {
         method: 'GET',
-        headers: { 'Accept': 'application/json' },
+        headers: { Accept: 'application/json' },
       });
 
       if (response.ok) {
@@ -125,7 +126,7 @@ export const TroubleshootingWizard = ({ isOpen, onClose, onDiagnosticsComplete }
     // Check 3: OCR endpoint (OPTIONS to test CORS)
     setCurrentStep(3);
     try {
-      const response = await fetch('http://localhost:5001/ocr', {
+      const response = await fetch(`${API_BASE}/ocr`, {
         method: 'OPTIONS',
       });
 
@@ -175,7 +176,7 @@ export const TroubleshootingWizard = ({ isOpen, onClose, onDiagnosticsComplete }
       formData.append('file', blob, 'test.png');
 
       const start = Date.now();
-      const response = await fetch('http://localhost:5001/ocr', {
+      const response = await fetch(`${API_BASE}/ocr`, {
         method: 'POST',
         body: formData,
       });

@@ -3,6 +3,8 @@
  * Monitors connection to the receipts-ocr backend container
  */
 
+import { API_BASE } from '../config';
+
 export interface DockerHealthStatus {
   isHealthy: boolean;
   isAvailable: boolean;
@@ -11,9 +13,8 @@ export interface DockerHealthStatus {
   retryCount: number;
   ocrEngine?: string;
   database?: string;
+  backendVersion?: string;
 }
-
-const API_BASE = 'http://localhost:5001';
 
 class DockerHealthService {
   private healthStatus: DockerHealthStatus = {
@@ -98,6 +99,7 @@ class DockerHealthService {
           retryCount: 0,
           ocrEngine: data.ocr_engine,
           database: data.database,
+          backendVersion: data.version,
         };
         return this.healthStatus;
       }

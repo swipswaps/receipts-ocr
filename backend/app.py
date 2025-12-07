@@ -1,7 +1,7 @@
 """
-Receipts OCR Backend - PaddleOCR + PostgreSQL REST API
+PaddleOCR Backend - PaddleOCR + PostgreSQL REST API
 
-A Flask API for receipt OCR using PaddleOCR with PostgreSQL storage.
+A Flask API for OCR using PaddleOCR with PostgreSQL storage.
 Based on patterns from Docker-OCR-2 llm_notes.
 """
 
@@ -19,6 +19,11 @@ import time as time_module
 from collections import deque
 from threading import Lock
 from typing import TYPE_CHECKING, Any, TypedDict
+
+# Enable PaddlePaddle verbose logging BEFORE importing paddle
+os.environ.setdefault("GLOG_v", "1")
+os.environ.setdefault("GLOG_logtostderr", "1")
+os.environ.setdefault("FLAGS_call_stack_level", "2")
 
 import cv2
 import numpy as np
@@ -63,19 +68,27 @@ def preprocess_for_ocr(img: np.ndarray) -> np.ndarray:
     Returns:
         Preprocessed BGR image ready for OCR
     """
+    h, w = img.shape[:2]
+    logger.info(f"[Preprocess] Input image: {w}x{h} pixels")
+
     # Convert to grayscale for processing
+    logger.info("[Preprocess] Step 1/4: Converting to grayscale...")
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Denoise while preserving edges
+    logger.info("[Preprocess] Step 2/4: Denoising (this may take a few seconds)...")
     denoised = cv2.fastNlMeansDenoising(gray, h=10, templateWindowSize=7, searchWindowSize=21)
 
     # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    logger.info("[Preprocess] Step 3/4: Enhancing contrast (CLAHE)...")
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     enhanced = clahe.apply(denoised)
 
     # Detect and correct skew
+    logger.info("[Preprocess] Step 4/4: Detecting and correcting skew...")
     enhanced = deskew_image(enhanced)
 
+    logger.info("[Preprocess] Complete - image ready for OCR")
     # Convert back to BGR for PaddleOCR (it expects color images)
     return cv2.cvtColor(enhanced, cv2.COLOR_GRAY2BGR)
 
@@ -385,6 +398,13 @@ buffer_handler.setLevel(logging.INFO)
 buffer_handler.setFormatter(logging.Formatter("[%(levelname)7s] %(message)s"))
 logger.addHandler(buffer_handler)
 
+# Capture PaddlePaddle and related library logs too
+for paddle_logger_name in ["paddle", "paddleocr", "ppocr", "urllib3"]:
+    paddle_logger = logging.getLogger(paddle_logger_name)
+    paddle_logger.setLevel(logging.INFO)
+    paddle_logger.addHandler(buffer_handler)
+    paddle_logger.addHandler(handler)
+
 # -----------------------------------------------------------------------------
 # Flask Application Setup
 # -----------------------------------------------------------------------------
@@ -503,26 +523,14 @@ def init_database() -> bool:
 
     try:
         with conn.cursor() as cur:
+            # Simple schema: just store filename, raw OCR text, and timestamp
+            # No receipt-specific fields - this is a general-purpose OCR tool
             cur.execute("""
-                CREATE TABLE IF NOT EXISTS receipts (
+                CREATE TABLE IF NOT EXISTS scans (
                     id SERIAL PRIMARY KEY,
                     filename VARCHAR(255),
-                    store_name VARCHAR(255),
-                    receipt_date DATE,
-                    subtotal DECIMAL(10,2),
-                    tax DECIMAL(10,2),
-                    total DECIMAL(10,2),
                     raw_text TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
-                CREATE TABLE IF NOT EXISTS receipt_items (
-                    id SERIAL PRIMARY KEY,
-                    receipt_id INTEGER REFERENCES receipts(id) ON DELETE CASCADE,
-                    item_name VARCHAR(255),
-                    quantity INTEGER DEFAULT 1,
-                    unit_price DECIMAL(10,2),
-                    total_price DECIMAL(10,2)
                 );
             """)
             conn.commit()
@@ -566,10 +574,14 @@ init_database()
 
 
 # -----------------------------------------------------------------------------
-# Receipt Parsing Logic
+# OCR Text Parsing Logic
 # -----------------------------------------------------------------------------
 def parse_receipt_text(blocks: list[dict[str, Any]]) -> dict[str, Any]:
-    """Parse OCR blocks into structured receipt data."""
+    """Parse OCR blocks into structured data.
+
+    Now generic - captures all text lines as items, not just those with prices.
+    This works for receipts, invoices, bid sheets, or any document.
+    """
     items: list[dict[str, Any]] = []
     subtotal: float | None = None
     tax: float | None = None
@@ -579,36 +591,45 @@ def parse_receipt_text(blocks: list[dict[str, Any]]) -> dict[str, Any]:
     # Sort blocks by Y position (top to bottom)
     sorted_blocks = sorted(blocks, key=lambda b: b.get("_y", 0))
 
-    # First non-empty block is often the store name
-    for block in sorted_blocks[:3]:
-        text = block.get("text", "").strip()
-        if text and not PRICE_PATTERN.search(text):
-            store_name = clean_ocr_text(text)
-            break
-
-    # Keywords to exclude from items
+    # Keywords to exclude from items (metadata, not content)
     exclude_keywords = ["subtotal", "tax", "total", "change", "cash", "card", "credit", "debit"]
+
+    # Minimum text length to be considered an item (filter noise)
+    MIN_ITEM_LENGTH = 3
 
     for block in sorted_blocks:
         text = clean_ocr_text(block.get("text", ""))
         text_lower = text.lower()
         price = extract_price(text)
 
-        # Detect totals
+        # Skip very short text (likely noise or single characters)
+        if len(text.strip()) < MIN_ITEM_LENGTH:
+            continue
+
+        # Detect totals (receipt-specific, but keep for backwards compatibility)
         if "subtotal" in text_lower and price:
             subtotal = price
         elif "tax" in text_lower and price:
             tax = price
         elif "total" in text_lower and "subtotal" not in text_lower and price:
             total = price
-        elif price and text and not any(x in text_lower for x in exclude_keywords):
-            # This is likely an item
+        elif text and not any(x in text_lower for x in exclude_keywords):
+            # Capture as item - with or without price
             # Remove price from text to get item name
             item_name = PRICE_PATTERN.sub("", text).strip()
-            if item_name:
+            if item_name and len(item_name) >= MIN_ITEM_LENGTH:
                 items.append(
-                    {"name": item_name, "quantity": 1, "unit_price": price, "total_price": price}
+                    {
+                        "name": item_name,
+                        "quantity": 1,
+                        "unit_price": price,  # May be None
+                        "total_price": price,  # May be None
+                    }
                 )
+
+    # Use first non-price item as potential header/title (optional)
+    if items and not store_name:
+        store_name = items[0]["name"] if len(items) > 0 else None
 
     return {
         "store_name": store_name,
@@ -622,6 +643,10 @@ def parse_receipt_text(blocks: list[dict[str, Any]]) -> dict[str, Any]:
 # -----------------------------------------------------------------------------
 # API Routes
 # -----------------------------------------------------------------------------
+# Backend version - increment when making breaking changes
+BACKEND_VERSION = "1.0.0"
+
+
 @app.route("/health", methods=["GET"])
 def health() -> Response:
     """Health check endpoint."""
@@ -629,10 +654,255 @@ def health() -> Response:
     return jsonify(
         {
             "status": "healthy",
+            "version": BACKEND_VERSION,
             "ocr_engine": "ready" if ocr else "not_initialized",
             "database": db_status,
         }
     )
+
+
+@app.route("/network-diagnostics", methods=["GET"])
+def network_diagnostics() -> Response:
+    """Network diagnostics to help users troubleshoot connectivity issues."""
+    diagnostics: dict[str, Any] = {
+        "ports": {},
+        "firewall": {},
+        "local_ips": [],
+        "instructions": [],
+    }
+
+    # Get local IP addresses
+    try:
+        result = subprocess.run(
+            ["hostname", "-I"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            diagnostics["local_ips"] = result.stdout.strip().split()
+    except Exception:
+        pass
+
+    # Check port listening status
+    try:
+        result = subprocess.run(
+            ["ss", "-tlnp"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            lines = result.stdout
+            diagnostics["ports"]["5173"] = {
+                "listening": ":5173" in lines,
+                "all_interfaces": "0.0.0.0:5173" in lines or "*:5173" in lines,
+            }
+            diagnostics["ports"]["5001"] = {
+                "listening": ":5001" in lines,
+                "all_interfaces": "0.0.0.0:5001" in lines,
+            }
+    except Exception:
+        pass
+
+    # Check firewall status
+    firewall_type = None
+    firewall_active = False
+
+    # Check ufw
+    try:
+        result = subprocess.run(
+            ["ufw", "status"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            firewall_type = "ufw"
+            firewall_active = "Status: active" in result.stdout
+            diagnostics["firewall"] = {
+                "type": "ufw",
+                "active": firewall_active,
+                "command": "sudo ufw allow 5173/tcp && sudo ufw allow 5001/tcp",
+            }
+    except FileNotFoundError:
+        pass
+
+    # Check firewalld if ufw not found
+    if not firewall_type:
+        try:
+            result = subprocess.run(
+                ["systemctl", "is-active", "firewalld"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                firewall_type = "firewalld"
+                firewall_active = True
+                fw_cmd = (
+                    "sudo firewall-cmd --add-port=5173/tcp "
+                    "--add-port=5001/tcp --permanent && "
+                    "sudo firewall-cmd --reload"
+                )
+                diagnostics["firewall"] = {
+                    "type": "firewalld",
+                    "active": True,
+                    "command": fw_cmd,
+                }
+        except FileNotFoundError:
+            pass
+
+    # Check iptables for blocking rules
+    if not firewall_type:
+        try:
+            result = subprocess.run(
+                ["iptables", "-L", "INPUT", "-n"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            has_drop = "DROP" in result.stdout or "REJECT" in result.stdout
+            if result.returncode == 0 and has_drop:
+                ipt_cmd = (
+                    "sudo iptables -I INPUT -p tcp --dport 5173 -j ACCEPT && "
+                    "sudo iptables -I INPUT -p tcp --dport 5001 -j ACCEPT"
+                )
+                diagnostics["firewall"] = {
+                    "type": "iptables",
+                    "active": True,
+                    "command": ipt_cmd,
+                }
+        except FileNotFoundError:
+            pass
+
+    if not diagnostics["firewall"]:
+        diagnostics["firewall"] = {"type": "none", "active": False}
+
+    # Build troubleshooting instructions
+    instructions = []
+
+    if not diagnostics["ports"].get("5173", {}).get("listening"):
+        instructions.append(
+            {
+                "issue": "Frontend not running",
+                "fix": "Start the dev server: npm run dev",
+            }
+        )
+
+    if not diagnostics["ports"].get("5001", {}).get("listening"):
+        instructions.append(
+            {
+                "issue": "Backend not running",
+                "fix": "Start backend: docker compose up -d",
+            }
+        )
+
+    if diagnostics["firewall"].get("active"):
+        instructions.append(
+            {
+                "issue": f"Firewall ({diagnostics['firewall']['type']}) may block connections",
+                "fix": diagnostics["firewall"]["command"],
+            }
+        )
+
+    diagnostics["instructions"] = instructions
+    diagnostics["network_url"] = (
+        f"http://{diagnostics['local_ips'][0]}:5173" if diagnostics["local_ips"] else None
+    )
+
+    return jsonify(diagnostics)
+
+
+@app.route("/stats", methods=["GET"])
+def get_stats() -> tuple[Response, int] | Response:
+    """Get database statistics - scan count, dates, etc."""
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        with conn.cursor() as cur:
+            # Get scan count and date range
+            cur.execute("""
+                SELECT
+                    COUNT(*) as scan_count,
+                    MIN(created_at) as oldest,
+                    MAX(created_at) as newest
+                FROM scans
+            """)
+            stats = cur.fetchone()
+
+        # Convert RealDictRow to dict for mypy
+        stats_dict: dict[str, Any] = dict(stats) if stats else {}
+        oldest = stats_dict.get("oldest")
+        newest = stats_dict.get("newest")
+        return jsonify(
+            {
+                "scan_count": stats_dict.get("scan_count", 0),
+                "oldest_scan": oldest.isoformat() if oldest else None,
+                "newest_scan": newest.isoformat() if newest else None,
+                "database": "PostgreSQL",
+                "status": "connected",
+            }
+        )
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route("/scans/export", methods=["GET"])
+def export_scans() -> tuple[Response, int] | Response:
+    """Export all scans as JSON or CSV."""
+    export_format = request.args.get("format", "json").lower()
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, filename, raw_text, created_at
+                FROM scans ORDER BY created_at DESC
+            """)
+            scans = cur.fetchall()
+
+        # Convert RealDictRow to dict for mypy
+        scan_list: list[dict[str, Any]] = [dict(s) for s in scans]
+
+        if export_format == "csv":
+            import csv
+            import io
+
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["ID", "Filename", "Raw Text", "Created"])
+            for s in scan_list:
+                writer.writerow([s["id"], s["filename"], s["raw_text"], s["created_at"]])
+            response = Response(output.getvalue(), mimetype="text/csv")
+            response.headers["Content-Disposition"] = "attachment; filename=scans_export.csv"
+            return response
+        else:
+            # JSON format - convert to serializable format
+            result = []
+            for s in scan_list:
+                created = s["created_at"]
+                result.append(
+                    {
+                        "id": s["id"],
+                        "filename": s["filename"],
+                        "raw_text": s["raw_text"],
+                        "created_at": created.isoformat() if created else None,
+                    }
+                )
+            response = Response(json_module.dumps(result, indent=2), mimetype="application/json")
+            response.headers["Content-Disposition"] = "attachment; filename=scans_export.json"
+            return response
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
 
 
 @app.route("/logs", methods=["GET"])
@@ -719,13 +989,24 @@ def ocr_endpoint() -> tuple[Response, int] | Response:
         )
 
         # Run OCR on preprocessed image (new PaddleOCR v3+ API)
-        # This is the slowest step - typically 30-90 seconds for large images
+        # This is the slowest step - typically 30-90 seconds for large images on CPU
         img_h, img_w = preprocessed.shape[:2] if len(preprocessed.shape) >= 2 else (0, 0)
-        logger.info(f"Starting PaddleOCR text detection ({img_w}x{img_h} pixels)...")
+        pixel_count = img_w * img_h
+        estimated_seconds = max(10, int(pixel_count / 400000))  # ~400k pixels/sec on CPU
+
+        logger.info(
+            f"[OCR] Starting text detection on {img_w}x{img_h} image ({pixel_count:,} pixels)"
+        )
+        logger.info(f"[OCR] Estimated time: ~{estimated_seconds}s (CPU inference, no GPU)")
+        logger.info("[OCR] Step 1/3: Text detection - finding text regions...")
+
         ocr_start = time.time()
         result = ocr.predict(preprocessed)
         ocr_time = time.time() - ocr_start
-        logger.info(f"PaddleOCR inference complete ({ocr_time:.1f}s)")
+
+        logger.info("[OCR] Step 2/3: Text recognition - complete")
+        logger.info("[OCR] Step 3/3: Post-processing - complete")
+        logger.info(f"[OCR] Inference finished in {ocr_time:.1f}s")
 
         if not result or len(result) == 0:
             return jsonify({"error": "No text detected"}), 200
@@ -895,9 +1176,9 @@ def detect_rotation() -> tuple[Response, int] | Response:
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/receipts", methods=["GET"])
-def list_receipts() -> tuple[Response, int] | Response:
-    """List all saved receipts."""
+@app.route("/scans", methods=["GET"])
+def list_scans() -> tuple[Response, int] | Response:
+    """List all saved scans."""
     conn = get_db_connection()
     if not conn:
         return jsonify({"error": "Database not available"}), 503
@@ -905,20 +1186,20 @@ def list_receipts() -> tuple[Response, int] | Response:
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT id, filename, store_name, receipt_date, total, created_at
-                FROM receipts ORDER BY created_at DESC
+                SELECT id, filename, raw_text, created_at
+                FROM scans ORDER BY created_at DESC
             """)
-            receipts = cur.fetchall()
-        return jsonify({"receipts": [dict(r) for r in receipts]})
+            scans = cur.fetchall()
+        return jsonify({"scans": [dict(s) for s in scans]})
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
 
-@app.route("/receipts", methods=["POST"])
-def save_receipt() -> tuple[Response, int] | Response:
-    """Save a receipt to the database."""
+@app.route("/scans", methods=["POST"])
+def save_scan() -> tuple[Response, int] | Response:
+    """Save a scan to the database."""
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
@@ -929,47 +1210,21 @@ def save_receipt() -> tuple[Response, int] | Response:
 
     try:
         with conn.cursor() as cur:
-            # Insert receipt
             cur.execute(
                 """
-                INSERT INTO receipts (filename, store_name, subtotal, tax, total, raw_text)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO scans (filename, raw_text)
+                VALUES (%s, %s)
                 RETURNING id
-            """,
-                (
-                    data.get("filename"),
-                    data.get("store_name"),
-                    data.get("subtotal"),
-                    data.get("tax"),
-                    data.get("total"),
-                    data.get("raw_text"),
-                ),
+                """,
+                (data.get("filename"), data.get("raw_text")),
             )
             row = cur.fetchone()
             if row is None:
-                raise ValueError("Failed to insert receipt")
-            receipt_id = row["id"]  # type: ignore[call-overload]
-
-            # Insert items
-            for item in data.get("items", []):
-                cur.execute(
-                    """
-                    INSERT INTO receipt_items
-                        (receipt_id, item_name, quantity, unit_price, total_price)
-                    VALUES (%s, %s, %s, %s, %s)
-                    """,
-                    (
-                        receipt_id,
-                        item.get("name"),
-                        item.get("quantity", 1),
-                        item.get("unit_price"),
-                        item.get("total_price"),
-                    ),
-                )
-
+                raise ValueError("Failed to insert scan")
+            scan_id = row["id"]  # type: ignore[call-overload]
             conn.commit()
 
-        return jsonify({"success": True, "receipt_id": receipt_id})
+        return jsonify({"success": True, "scan_id": scan_id})
     except psycopg2.Error as e:
         conn.rollback()
         return jsonify({"error": str(e)}), 500
@@ -977,50 +1232,66 @@ def save_receipt() -> tuple[Response, int] | Response:
         conn.close()
 
 
-@app.route("/receipts/<int:receipt_id>", methods=["GET"])
-def get_receipt(receipt_id: int) -> tuple[Response, int] | Response:
-    """Get a specific receipt with items."""
+@app.route("/scans/<int:scan_id>", methods=["GET"])
+def get_scan(scan_id: int) -> tuple[Response, int] | Response:
+    """Get a specific scan."""
     conn = get_db_connection()
     if not conn:
         return jsonify({"error": "Database not available"}), 503
 
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM receipts WHERE id = %s", (receipt_id,))
-            receipt = cur.fetchone()
+            cur.execute("SELECT * FROM scans WHERE id = %s", (scan_id,))
+            scan = cur.fetchone()
 
-            if not receipt:
-                return jsonify({"error": "Receipt not found"}), 404
+            if not scan:
+                return jsonify({"error": "Scan not found"}), 404
 
-            cur.execute("SELECT * FROM receipt_items WHERE receipt_id = %s", (receipt_id,))
-            items = cur.fetchall()
-
-        result = dict(receipt)
-        result["items"] = [dict(i) for i in items]
-        return jsonify(result)
+        return jsonify(dict(scan))
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
 
-@app.route("/receipts/<int:receipt_id>", methods=["DELETE"])
-def delete_receipt(receipt_id: int) -> tuple[Response, int] | Response:
-    """Delete a receipt."""
+@app.route("/scans/<int:scan_id>", methods=["DELETE"])
+def delete_scan(scan_id: int) -> tuple[Response, int] | Response:
+    """Delete a scan."""
     conn = get_db_connection()
     if not conn:
         return jsonify({"error": "Database not available"}), 503
 
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM receipts WHERE id = %s RETURNING id", (receipt_id,))
+            cur.execute("DELETE FROM scans WHERE id = %s RETURNING id", (scan_id,))
             deleted = cur.fetchone()
             conn.commit()
 
         if not deleted:
-            return jsonify({"error": "Receipt not found"}), 404
+            return jsonify({"error": "Scan not found"}), 404
 
         return jsonify({"success": True})
+    except psycopg2.Error as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route("/scans/clear", methods=["DELETE"])
+def clear_all_scans() -> tuple[Response, int] | Response:
+    """Delete all scans from the database."""
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database not available"}), 503
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM scans")
+            deleted_count = cur.rowcount
+            conn.commit()
+
+        return jsonify({"success": True, "deleted_count": deleted_count})
     except psycopg2.Error as e:
         conn.rollback()
         return jsonify({"error": str(e)}), 500
