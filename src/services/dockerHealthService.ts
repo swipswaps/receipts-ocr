@@ -146,13 +146,58 @@ class DockerHealthService {
     const ua = navigator.userAgent.toLowerCase();
     const isWindows = ua.includes('win');
     const isMac = ua.includes('mac');
+    const isGitHubPages = window.location.hostname.includes('github.io');
 
+    // For GitHub Pages visitors, show full clone instructions
+    if (isGitHubPages) {
+      if (isWindows) {
+        return {
+          platform: 'Windows',
+          steps: [
+            'Install Docker Desktop from docker.com/products/docker-desktop',
+            'Enable WSL2 if prompted (wsl --install in PowerShell Admin)',
+            'Open PowerShell and run: git clone https://github.com/swipswaps/receipts-ocr.git',
+            'cd receipts-ocr',
+            'docker compose up -d (wait 2-5 min for first build)',
+            'npm install && npm run dev',
+            'Open http://localhost:5173',
+          ],
+        };
+      } else if (isMac) {
+        return {
+          platform: 'macOS',
+          steps: [
+            'Install Docker Desktop from docker.com/products/docker-desktop',
+            'Open Terminal and run: git clone https://github.com/swipswaps/receipts-ocr.git',
+            'cd receipts-ocr',
+            'docker compose up -d (wait 2-5 min for first build)',
+            'npm install && npm run dev',
+            'Open http://localhost:5173',
+          ],
+        };
+      } else {
+        return {
+          platform: 'Linux',
+          steps: [
+            'Install Docker: curl -fsSL https://get.docker.com | sudo sh',
+            'Add user to docker group: sudo usermod -aG docker $USER && newgrp docker',
+            'git clone https://github.com/swipswaps/receipts-ocr.git',
+            'cd receipts-ocr',
+            'docker compose up -d (wait 2-5 min for first build)',
+            'npm install && npm run dev',
+            'Open http://localhost:5173',
+          ],
+        };
+      }
+    }
+
+    // For localhost visitors (already have repo), just show docker commands
     if (isWindows) {
       return {
         platform: 'Windows',
         steps: [
-          'Open PowerShell as Administrator',
-          'cd path\\to\\receipts-ocr',
+          'Install Docker Desktop from docker.com if not already installed',
+          'Open PowerShell in project folder',
           'docker compose up -d',
           'Wait 60 seconds for PaddleOCR to initialize',
           'Refresh this page',
@@ -162,8 +207,8 @@ class DockerHealthService {
       return {
         platform: 'macOS',
         steps: [
-          'Open Terminal',
-          'cd /path/to/receipts-ocr',
+          'Install Docker Desktop from docker.com if not already installed',
+          'Open Terminal in project folder',
           'docker compose up -d',
           'Wait 60 seconds for PaddleOCR to initialize',
           'Refresh this page',
@@ -173,9 +218,8 @@ class DockerHealthService {
       return {
         platform: 'Linux',
         steps: [
-          'Open Terminal',
-          'cd /path/to/receipts-ocr',
-          'docker compose up -d',
+          'Install Docker: curl -fsSL https://get.docker.com | sudo sh',
+          'Run: docker compose up -d',
           'Wait 60 seconds for PaddleOCR to initialize',
           'Refresh this page',
         ],

@@ -548,6 +548,9 @@ def init_ocr_engine() -> PaddleOCR | None:
 
 ocr = init_ocr_engine()
 
+# Initialize database at module load (for gunicorn which imports module, not runs __main__)
+init_database()
+
 
 # -----------------------------------------------------------------------------
 # Receipt Parsing Logic
