@@ -12,17 +12,30 @@ export const isGitHubPages =
 
 /**
  * Backend API base URL
- * - On GitHub Pages: Uses localhost (won't work, but gracefully falls back)
- * - On same host as backend: Uses localhost:5001
- * - On different host: Uses the current hostname with port 5001
+ * - On GitHub Pages: Uses localhost (backend unavailable, falls back to Tesseract.js)
+ * - On localhost/127.0.0.1: Uses localhost:5001
+ * - On LAN (e.g., 192.168.x.x): Uses that hostname with port 5001
  */
-export const API_BASE =
-  typeof window !== 'undefined'
-    ? window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:5001'
-      : `http://${window.location.hostname}:5001`
-    : 'http://localhost:5001';
+export const API_BASE = (() => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:5001';
+  }
+
+  const hostname = window.location.hostname;
+
+  // GitHub Pages - no backend available, use localhost to fail fast
+  if (hostname.includes('github.io')) {
+    return 'http://localhost:5001';
+  }
+
+  // Local development
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5001';
+  }
+
+  // LAN access - use same hostname (e.g., 192.168.1.x)
+  return `http://${hostname}:5001`;
+})();
 
 /**
  * Default ports (can be overridden via .env)
