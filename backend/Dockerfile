@@ -41,10 +41,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD curl -f http://localhost:5001/health || exit 1
 
 # Production server with gunicorn
-# Based on llm_notes: --capture-output for logging, single worker for OCR
+# Using threads=4 so the single worker can handle /logs requests during long OCR (Issue #27)
 CMD ["gunicorn", \
      "--bind", "0.0.0.0:5001", \
      "--workers", "1", \
+     "--threads", "4", \
      "--timeout", "120", \
      "--graceful-timeout", "30", \
      "--log-level", "info", \

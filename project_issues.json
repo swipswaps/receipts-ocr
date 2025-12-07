@@ -4,8 +4,8 @@
   "last_updated": "2025-12-06",
   "summary": {
     "total_issues": 27,
-    "fixed": 24,
-    "open": 1,
+    "fixed": 25,
+    "open": 0,
     "known_limitations": 2,
     "chat_logs_reviewed": [
       "/home/owner/Documents/Docker-OCR-2/chatLog.txt",
@@ -383,18 +383,27 @@
       "id": 27,
       "category": "frontend",
       "title": "Backend Logs Not Streamed to Frontend During OCR",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "symptom": "During OCR processing (60-90 seconds), the frontend shows no progress. User sees 'Sending to PaddleOCR backend...' then nothing until completion. Docker backend logs show activity (Processing receipt, OpenCV preprocessing, PaddleOCR inference, Detected X blocks) but these are not displayed to the user.",
-      "root_cause": "Backend logs are written to Docker stdout/stderr (visible via 'docker logs') but there is no mechanism to stream these to the frontend in real-time. The fetch() API doesn't support streaming progress from synchronous endpoints.",
-      "files": ["backend/app.py", "src/services/ocrService.ts"],
-      "proposed_fix": {
-        "option_1": "Server-Sent Events (SSE): Add /ocr-progress endpoint that streams backend logs to frontend during OCR",
-        "option_2": "WebSocket: Establish WebSocket connection to push logs in real-time",
-        "option_3": "Polling: Frontend polls /logs endpoint every few seconds during OCR"
+      "root_cause": "Backend logs are written to Docker stdout/stderr but gunicorn with --workers 1 blocks on OCR request, preventing concurrent /logs requests from being served.",
+      "files": ["backend/app.py", "backend/Dockerfile", "src/services/ocrService.ts", "src/services/backendLogService.ts"],
+      "fix": {
+        "action": "Implemented SSE log streaming with gunicorn threading support",
+        "backend_changes": [
+          "Added LogBufferHandler to capture logs to deque buffer",
+          "Added /logs endpoint for polling logs since timestamp",
+          "Added /logs/stream SSE endpoint for real-time streaming",
+          "Added --threads 4 to gunicorn so /logs can be served during OCR"
+        ],
+        "frontend_changes": [
+          "Created backendLogService.ts with SSE/polling support",
+          "ocrService.ts subscribes to backend logs during OCR",
+          "Logs appear as [Backend] ... in system logs panel"
+        ]
       },
       "anti_pattern": "Do NOT use pseudo-progress (animated spinners with time estimates). Display REAL backend logs verbatim.",
-      "verified_by": "pending"
+      "verified_by": "manual"
     }
   ],
   "verification_methods": {
